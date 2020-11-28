@@ -218,4 +218,6 @@ DataModel::Column::DataType toDataType(const std::string &);
 bool dataTypeHasLength(DataModel::Column::DataType dt);
 bool dataTypeHasPrecision(DataModel::Column::DataType dt);
 bool dataTypeIsSerial(DataModel::Column::DataType dt);
+std::string cTypeFor(DataModel::Column::DataType dt);
+
 

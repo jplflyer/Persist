@@ -16,8 +16,8 @@ using DataType = DataModel::Column::DataType;
  * Constructor.
  */
 CodeGenerator_SQL::CodeGenerator_SQL()
+    : CodeGenerator("CodeGenerator_SQL")
 {
-    name = "CodeGenerator";
 }
 
 /**

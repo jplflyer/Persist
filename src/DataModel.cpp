@@ -123,11 +123,12 @@ public:
     bool hasPrecision = false;
     bool isSerial = false;
     string lowerName;
+    string cType;
 };
 
 // These two maps are reverses of each other for rapid lookup.
 static std::map<std::string, DataTypeInfo> stringToDataTypeMap;
-static std::map<DataModel::Column::DataType, DataTypeInfo> dataTypeToStringMap;
+static std::map<DataModel::Column::DataType, DataTypeInfo> dataTypesMap;
 static std::mutex mapMutex;
 
 static void populateMaps() {
@@ -135,32 +136,33 @@ static void populateMaps() {
     if (stringToDataTypeMap.size() == 0) {
         std::vector<DataTypeInfo> vec;
 
-        vec.push_back( {"BigInt", DataModel::Column::DataType::BigInt, false, false, false, ""} );
-        vec.push_back( {"BigSerial", DataModel::Column::DataType::BigSerial, false, false, true, ""} );
-        vec.push_back( {"Bit", DataModel::Column::DataType::Bit, false, false, false, ""} );
-        vec.push_back( {"VarBit", DataModel::Column::DataType::VarBit, false, false, false, ""} );
-        vec.push_back( {"SmallInt", DataModel::Column::DataType::SmallInt, false, false, false, ""} );
-        vec.push_back( {"Serial", DataModel::Column::DataType::Serial, false, false, true, ""} );
-        vec.push_back( {"Boolean", DataModel::Column::DataType::Boolean, false, false, false, ""} );
-        vec.push_back( {"Double", DataModel::Column::DataType::Double, false, false, false, ""} );
-        vec.push_back( {"Integer", DataModel::Column::DataType::Integer, false, false, false, ""} );
-        vec.push_back( {"Real", DataModel::Column::DataType::Real, false, false, false, ""} );
-        vec.push_back( {"Numeric", DataModel::Column::DataType::Numeric, false, true, false, ""} );
-        vec.push_back( {"ByteArray", DataModel::Column::DataType::ByteArray, true, false, false, ""} );
-        vec.push_back( {"Character", DataModel::Column::DataType::Character, true, false, false, ""} );
-        vec.push_back( {"VarChar", DataModel::Column::DataType::VarChar, true, false, false, ""} );
-        vec.push_back( {"Text", DataModel::Column::DataType::Text, false, false, false, ""} );
-        vec.push_back( {"Interval", DataModel::Column::DataType::Interval, false, false, false, ""} );
-        vec.push_back( {"Date", DataModel::Column::DataType::Date, false, false, false, ""} );
-        vec.push_back( {"Time", DataModel::Column::DataType::Time, false, false, false, ""} );
-        vec.push_back( {"TimeTZ", DataModel::Column::DataType::TimeTZ, false, false, false, ""} );
-        vec.push_back( {"Timestamp", DataModel::Column::DataType::Timestamp, false, false, false, ""} );
-        vec.push_back( {"TimestampTZ", DataModel::Column::DataType::TimestampTZ, false, false, false, ""} );
+        // TODO: Some of these are wrong.
+        vec.push_back( {"BigInt", DataModel::Column::DataType::BigInt, false, false, false, "", "long"} );
+        vec.push_back( {"BigSerial", DataModel::Column::DataType::BigSerial, false, false, true, "", "long"} );
+        vec.push_back( {"Bit", DataModel::Column::DataType::Bit, false, false, false, "", "short"} );
+        vec.push_back( {"VarBit", DataModel::Column::DataType::VarBit, false, false, false, "", "short"} );
+        vec.push_back( {"SmallInt", DataModel::Column::DataType::SmallInt, false, false, false, "", "short"} );
+        vec.push_back( {"Serial", DataModel::Column::DataType::Serial, false, false, true, "", "int"} );
+        vec.push_back( {"Boolean", DataModel::Column::DataType::Boolean, false, false, false, "", "bool"} );
+        vec.push_back( {"Double", DataModel::Column::DataType::Double, false, false, false, "", "double"} );
+        vec.push_back( {"Integer", DataModel::Column::DataType::Integer, false, false, false, "", "int"} );
+        vec.push_back( {"Real", DataModel::Column::DataType::Real, false, false, false, "", "double"} );
+        vec.push_back( {"Numeric", DataModel::Column::DataType::Numeric, false, true, false, "", "double"} );
+        vec.push_back( {"ByteArray", DataModel::Column::DataType::ByteArray, true, false, false, "", "string"} );
+        vec.push_back( {"Character", DataModel::Column::DataType::Character, true, false, false, "", "string"} );
+        vec.push_back( {"VarChar", DataModel::Column::DataType::VarChar, true, false, false, "", "string"} );
+        vec.push_back( {"Text", DataModel::Column::DataType::Text, false, false, false, "", "string"} );
+        vec.push_back( {"Interval", DataModel::Column::DataType::Interval, false, false, false, "", "string"} );
+        vec.push_back( {"Date", DataModel::Column::DataType::Date, false, false, false, "", "string"} );
+        vec.push_back( {"Time", DataModel::Column::DataType::Time, false, false, false, "", "string"} );
+        vec.push_back( {"TimeTZ", DataModel::Column::DataType::TimeTZ, false, false, false, "", "string"} );
+        vec.push_back( {"Timestamp", DataModel::Column::DataType::Timestamp, false, false, false, "", "string"} );
+        vec.push_back( {"TimestampTZ", DataModel::Column::DataType::TimestampTZ, false, false, false, "", "string"} );
 
         for (DataTypeInfo &info: vec) {
             info.lowerName = toLower(info.name);
             stringToDataTypeMap[info.lowerName] = info;
-            dataTypeToStringMap[info.dataType] = info;
+            dataTypesMap[info.dataType] = info;
         }
     }
 }
@@ -170,7 +172,7 @@ static void populateMaps() {
  */
 std::string toString(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypeToStringMap[dt].name;
+    return dataTypesMap[dt].name;
 }
 
 /**
@@ -184,12 +186,12 @@ DataModel::Column::DataType toDataType(const std::string &str) {
 
 bool dataTypeHasLength(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypeToStringMap[dt].hasLength;
+    return dataTypesMap[dt].hasLength;
 }
 
 bool dataTypeHasPrecision(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypeToStringMap[dt].hasPrecision;
+    return dataTypesMap[dt].hasPrecision;
 }
 
 /**
@@ -197,7 +199,15 @@ bool dataTypeHasPrecision(DataModel::Column::DataType dt) {
  */
 bool dataTypeIsSerial(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypeToStringMap[dt].isSerial;
+    return dataTypesMap[dt].isSerial;
+}
+
+/**
+ * What underlying C++ datatype do we use?
+ */
+string cTypeFor(DataModel::Column::DataType dt) {
+    populateMaps();
+    return dataTypesMap[dt].cType;
 }
 
 
@@ -238,7 +248,7 @@ DataModel::Column::deepEquals(const DataModel::Column &orig) const {
  * Read from JSON.
  */
 void
-DataModel::Column::fromJSON(const JSON &json)  {
+DataModel::Column::fromJSON(const JSON &json) {
     name = stringValue(json, "name");
     dbName = camelToLower(stringValue(json, "dbName"));
     dataType = toDataType(stringValue(json, "dataType"));

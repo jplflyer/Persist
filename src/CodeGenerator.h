@@ -9,7 +9,7 @@
 class CodeGenerator
 {
 public:
-    CodeGenerator() = default;
+    CodeGenerator(const std::string & _name);
 
     virtual void generate(DataModel &) = 0;
 

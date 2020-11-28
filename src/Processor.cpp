@@ -4,8 +4,9 @@
 #include <showlib/FileUtilities.h>
 #include <showlib/StringUtils.h>
 
-#include "Processor.h"
+#include "CodeGenerator_CPP.h"
 #include "CodeGenerator_SQL.h"
+#include "Processor.h"
 
 using std::cout;
 using std::cerr;
@@ -131,8 +132,11 @@ Processor::writeModel() {
  */
 void
 Processor::generate() {
-    CodeGenerator_SQL gen;
-    gen.outputFileName = "db.sql";
+    CodeGenerator_SQL sqlGen;
+    sqlGen.outputFileName = "db.sql";
+    sqlGen.generate(model);
 
-    gen.generate(model);
+    CodeGenerator_CPP cppGen;
+    cppGen.outputFileName = srcDirName;
+    cppGen.generate(model);
 }
