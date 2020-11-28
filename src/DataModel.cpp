@@ -121,6 +121,7 @@ public:
     DataType dataType;
     bool hasLength = false;
     bool hasPrecision = false;
+    bool isSerial = false;
     string lowerName;
 };
 
@@ -134,27 +135,27 @@ static void populateMaps() {
     if (stringToDataTypeMap.size() == 0) {
         std::vector<DataTypeInfo> vec;
 
-        vec.push_back( {"BigInt", DataModel::Column::DataType::BigInt, false, false, ""} );
-        vec.push_back( {"BigSerial", DataModel::Column::DataType::BigSerial, false, false, ""} );
-        vec.push_back( {"Bit", DataModel::Column::DataType::Bit, false, false, ""} );
-        vec.push_back( {"VarBit", DataModel::Column::DataType::VarBit, false, false, ""} );
-        vec.push_back( {"SmallInt", DataModel::Column::DataType::SmallInt, false, false, ""} );
-        vec.push_back( {"Serial", DataModel::Column::DataType::Serial, false, false, ""} );
-        vec.push_back( {"Boolean", DataModel::Column::DataType::Boolean, false, false, ""} );
-        vec.push_back( {"Double", DataModel::Column::DataType::Double, false, false, ""} );
-        vec.push_back( {"Integer", DataModel::Column::DataType::Integer, false, false, ""} );
-        vec.push_back( {"Real", DataModel::Column::DataType::Real, false, false, ""} );
-        vec.push_back( {"Numeric", DataModel::Column::DataType::Numeric, false, true, ""} );
-        vec.push_back( {"ByteArray", DataModel::Column::DataType::ByteArray, true, false, ""} );
-        vec.push_back( {"Character", DataModel::Column::DataType::Character, true, false, ""} );
-        vec.push_back( {"VarChar", DataModel::Column::DataType::VarChar, true, false, ""} );
-        vec.push_back( {"Text", DataModel::Column::DataType::Text, false, false, ""} );
-        vec.push_back( {"Interval", DataModel::Column::DataType::Interval, false, false, ""} );
-        vec.push_back( {"Date", DataModel::Column::DataType::Date, false, false, ""} );
-        vec.push_back( {"Time", DataModel::Column::DataType::Time, false, false, ""} );
-        vec.push_back( {"TimeTZ", DataModel::Column::DataType::TimeTZ, false, false, ""} );
-        vec.push_back( {"Timestamp", DataModel::Column::DataType::Timestamp, false, false, ""} );
-        vec.push_back( {"TimestampTZ", DataModel::Column::DataType::TimestampTZ, false, false, ""} );
+        vec.push_back( {"BigInt", DataModel::Column::DataType::BigInt, false, false, false, ""} );
+        vec.push_back( {"BigSerial", DataModel::Column::DataType::BigSerial, false, false, true, ""} );
+        vec.push_back( {"Bit", DataModel::Column::DataType::Bit, false, false, false, ""} );
+        vec.push_back( {"VarBit", DataModel::Column::DataType::VarBit, false, false, false, ""} );
+        vec.push_back( {"SmallInt", DataModel::Column::DataType::SmallInt, false, false, false, ""} );
+        vec.push_back( {"Serial", DataModel::Column::DataType::Serial, false, false, true, ""} );
+        vec.push_back( {"Boolean", DataModel::Column::DataType::Boolean, false, false, false, ""} );
+        vec.push_back( {"Double", DataModel::Column::DataType::Double, false, false, false, ""} );
+        vec.push_back( {"Integer", DataModel::Column::DataType::Integer, false, false, false, ""} );
+        vec.push_back( {"Real", DataModel::Column::DataType::Real, false, false, false, ""} );
+        vec.push_back( {"Numeric", DataModel::Column::DataType::Numeric, false, true, false, ""} );
+        vec.push_back( {"ByteArray", DataModel::Column::DataType::ByteArray, true, false, false, ""} );
+        vec.push_back( {"Character", DataModel::Column::DataType::Character, true, false, false, ""} );
+        vec.push_back( {"VarChar", DataModel::Column::DataType::VarChar, true, false, false, ""} );
+        vec.push_back( {"Text", DataModel::Column::DataType::Text, false, false, false, ""} );
+        vec.push_back( {"Interval", DataModel::Column::DataType::Interval, false, false, false, ""} );
+        vec.push_back( {"Date", DataModel::Column::DataType::Date, false, false, false, ""} );
+        vec.push_back( {"Time", DataModel::Column::DataType::Time, false, false, false, ""} );
+        vec.push_back( {"TimeTZ", DataModel::Column::DataType::TimeTZ, false, false, false, ""} );
+        vec.push_back( {"Timestamp", DataModel::Column::DataType::Timestamp, false, false, false, ""} );
+        vec.push_back( {"TimestampTZ", DataModel::Column::DataType::TimestampTZ, false, false, false, ""} );
 
         for (DataTypeInfo &info: vec) {
             info.lowerName = toLower(info.name);
@@ -190,6 +191,15 @@ bool dataTypeHasPrecision(DataModel::Column::DataType dt) {
     populateMaps();
     return dataTypeToStringMap[dt].hasPrecision;
 }
+
+/**
+ * Is this data type one of the Serial types?
+ */
+bool dataTypeIsSerial(DataModel::Column::DataType dt) {
+    populateMaps();
+    return dataTypeToStringMap[dt].isSerial;
+}
+
 
 /**
  * Constructor.
@@ -230,7 +240,7 @@ DataModel::Column::deepEquals(const DataModel::Column &orig) const {
 void
 DataModel::Column::fromJSON(const JSON &json)  {
     name = stringValue(json, "name");
-    dbName = stringValue(json, "dbName");
+    dbName = camelToLower(stringValue(json, "dbName"));
     dataType = toDataType(stringValue(json, "dataType"));
     dataLength = intValue(json, "length");
     precisionP = intValue(json, "precisionP");
@@ -267,13 +277,13 @@ DataModel::Column::toJSON(JSON &json) const {
 }
 
 /**
- * Return ourself as tablename.columnname.
+ * Return ourself as tablename (columnname).
  */
 std::string
-DataModel::Column::fullName() const {
+DataModel::Column::fullName(bool useDbName) const {
     Table::Pointer table = ourTable.lock();
 
-    return table->getName() + "." + name;
+    return (useDbName ? table->getDbName() : table->getName()) + " (" + (useDbName ? name : dbName) + ")";
 }
 
 //======================================================================
@@ -305,7 +315,7 @@ DataModel::Table::deepEquals(const DataModel::Table &orig) const {
 void
 DataModel::Table::fromJSON(const JSON &json)  {
     name = stringValue(json, "name");
-    dbName = stringValue(json, "dbName");
+    dbName = camelToLower(stringValue(json, "dbName"));
 
     // Do this manually so we can pass in the shared pointer to ourself.
     JSON columnsJSON = jsonArray(json, "columns");

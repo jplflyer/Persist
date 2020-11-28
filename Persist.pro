@@ -8,6 +8,8 @@ CONFIG += sdk_no_version_check
 INCLUDEPATH += ./src ../ShowLib/include ../ShowLib /usr/local/include
 
 SOURCES += \
+    src/CodeGenerator.cpp \
+    src/CodeGenerator_SQL.cpp \
     src/DataModel.cpp \
     src/Processor.cpp \
     src/main.cpp \
@@ -15,6 +17,8 @@ SOURCES += \
     tests/main-test.cpp
 
 HEADERS += \
+    src/CodeGenerator.h \
+    src/CodeGenerator_SQL.h \
     src/DataModel.h \
     src/Processor.h \
     tests/TestDataModel.h \

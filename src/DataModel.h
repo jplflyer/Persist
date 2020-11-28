@@ -97,7 +97,7 @@ public:
         const std::string getReferenceStr() const { return referenceStr; }
         DataType getDataType() const { return dataType; }
         int getLength() const { return dataLength; }
-        int getPercisionP() const { return precisionP; }
+        int getPrecisionP() const { return precisionP; }
         int getPrecisionS() const { return precisionS; }
         bool getNullable() const { return nullable; }
         bool getIsPrimaryKey() const { return isPrimaryKey; }
@@ -123,7 +123,7 @@ public:
 
         Column & setReferences(Pointer value) { references = value; return *this; }
 
-        std::string fullName() const;
+        std::string fullName(bool useDbName = false) const;
 
     private:
         /** What table contains us? */
@@ -204,6 +204,9 @@ public:
     Table::Pointer createTable(const std::string &tableName);
     const Table::Pointer findTable(const std::string &tableName) const;
 
+    const Table::Vector & getTables() const { return tables; }
+
+
     bool fixReferences();
 
 private:
@@ -214,4 +217,5 @@ std::string toString(DataModel::Column::DataType dt);
 DataModel::Column::DataType toDataType(const std::string &);
 bool dataTypeHasLength(DataModel::Column::DataType dt);
 bool dataTypeHasPrecision(DataModel::Column::DataType dt);
+bool dataTypeIsSerial(DataModel::Column::DataType dt);
 
