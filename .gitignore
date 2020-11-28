@@ -1,0 +1,20 @@
+.d/
+DataModeler
+test-bin-mac/
+test.json
+
+*~
+*.core
+*.o
+*.obj
+core
+.DS_Store
+/.qmake.cache
+/.qmake.stash
+
+# qtcreator generated files
+*.pro.user*
+
+# Vim temporary files
+.*.swp
+
