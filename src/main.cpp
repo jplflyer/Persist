@@ -13,6 +13,7 @@ using std::string;
 using namespace ShowLib;
 
 static void specifyColumn(const std::string &);
+static void specifyReferences(const std::string &);
 
 static Processor processor;
 static DataModel::Table::Pointer table;
@@ -32,6 +33,8 @@ int main(int argc, char **argv)
     args.addArg  ("table",    [&](const char *arg){ table = processor.specifyTable(arg); }, "tablename", "Create/Update this table");
     args.addArg  ("column",   [&](const char *arg){ specifyColumn(arg); }, "columnname[,type]", "Create/Update this column");
     args.addNoArg("pk",       [&](const char *){ if (column != nullptr) column->setIsPrimaryKey(true); }, "Mark column as a primery key.");
+    args.addNoArg("notnull",  [&](const char *){ if (column != nullptr) column->setNullable(false); }, "Mark column as NOT NULL.");
+    args.addArg  ("ref",      [&](const char *arg){ specifyReferences(arg); }, "table[.col]", "Mark this foreign key reference.");
 
     if (!OptionHandler::handleOptions(argc, argv, args)) {
         return 1;
@@ -59,4 +62,19 @@ specifyColumn(const std::string &arg) {
     }
 
     column = processor.specifyColumn(*table, arg);
+}
+
+/**
+ * Mark the current column as a foreign key reference. For now, we just
+ * track it as a string, but DataModel can update all references.
+ */
+void
+specifyReferences(const std::string &arg) {
+    if (column == nullptr) {
+        cerr << "Must specify --column before --ref." << endl;
+        exit(2);
+    }
+
+    column->setReferenceStr(arg);
+    processor.fixReferences();
 }

@@ -21,6 +21,7 @@ public:
     DataModel::Table::Pointer specifyTable(const std::string &value);
     DataModel::Column::Pointer specifyColumn(DataModel::Table & table, const std::string &value);
 
+    void fixReferences();
     void writeModel();
     void generate();
 };

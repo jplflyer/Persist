@@ -22,6 +22,9 @@ Processor::setFileName(const std::string &value) {
     if (contents.length() > 0) {
         JSON json = JSON::parse(contents);
         model.fromJSON(json);
+        if (!model.fixReferences()) {
+            exit(2);
+        }
     }
 
     return *this;
@@ -101,6 +104,14 @@ Processor::specifyColumn(DataModel::Table & table, const std::string &colData) {
             .setPrecision(precision, scale);
 
     return column;
+}
+
+/**
+ * Fix the references.
+ */
+void
+Processor::fixReferences() {
+    model.fixReferences();
 }
 
 /**

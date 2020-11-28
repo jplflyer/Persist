@@ -7,6 +7,7 @@
 using namespace ShowLib;
 
 using std::cout;
+using std::cerr;
 using std::endl;
 using std::string;
 using DataType = DataModel::Column::DataType;
@@ -59,7 +60,7 @@ DataModel::createTable(const std::string &tableName) {
     Table::Pointer table = std::make_shared<Table>();
     tables.push_back(table);
     table->setName(tableName)
-          .setDbName(tableName) ;
+          .setDbName(camelToLower(tableName)) ;
     return table;
 }
 
@@ -71,6 +72,44 @@ DataModel::findTable(const std::string &tableName) const {
     return tables.findIf( [=](const Table::Pointer &ptr){ return ptr->getName() == tableName; } );
 }
 
+/**
+ * This goes through all tables and finds any with foreign key relationships.
+ * It updates their pointers.
+ *
+ * Returns true if any references were resolved.
+ */
+bool
+DataModel::fixReferences() {
+    bool errors = false;
+
+    for (const Table::Pointer & table: tables) {
+        for (const Column::Pointer & column: table->getColumns()) {
+            if (column->getReferenceStr().length() > 0 && column->getReferences() == nullptr) {
+                std::vector<string> parts = split(column->getReferenceStr(), ".");
+                Table::Pointer foundTable = findTable(parts.at(0));
+                Column::Pointer foundColumn = nullptr;
+
+                if (foundTable == nullptr) {
+                    cerr << "Unable to find referenced table for " << column->getReferenceStr() << endl;
+                    errors = true;
+                    continue;
+                }
+
+                foundColumn = (parts.size() > 1) ? foundTable->findColumn(parts.at(1))
+                        : foundTable->findPrimaryKey();
+                if (foundColumn == nullptr) {
+                    cerr << "Can't find referenced column for " << column->getReferenceStr() << endl;
+                    errors = true;
+                    continue;
+                }
+
+                column->setReferences(foundColumn);
+            }
+        }
+    }
+
+    return !errors;
+}
 
 //======================================================================
 // Columns.
@@ -155,8 +194,16 @@ bool dataTypeHasPrecision(DataModel::Column::DataType dt) {
 /**
  * Constructor.
  */
-DataModel::Column::Column(DataType dt)
-    : dataType(dt)
+DataModel::Column::Column(Table::Pointer t)
+    : ourTable(t)
+{
+}
+
+/**
+ * Constructor.
+ */
+DataModel::Column::Column(Table::Pointer t, DataType dt)
+    : ourTable(t), dataType(dt)
 {
 }
 
@@ -220,11 +267,13 @@ DataModel::Column::toJSON(JSON &json) const {
 }
 
 /**
- * Find this table.
+ * Return ourself as tablename.columnname.
  */
-const DataModel::Column::Pointer
-DataModel::Table::findColumn(const std::string &colName) const {
-    return columns.findIf( [=](const Column::Pointer &ptr){ return ptr->getName() == colName; } );
+std::string
+DataModel::Column::fullName() const {
+    Table::Pointer table = ourTable.lock();
+
+    return table->getName() + "." + name;
 }
 
 //======================================================================
@@ -257,7 +306,16 @@ void
 DataModel::Table::fromJSON(const JSON &json)  {
     name = stringValue(json, "name");
     dbName = stringValue(json, "dbName");
-    columns.fromJSON(jsonArray(json, "columns"));
+
+    // Do this manually so we can pass in the shared pointer to ourself.
+    JSON columnsJSON = jsonArray(json, "columns");
+    for (auto iter = columnsJSON.begin(); iter != columnsJSON.end(); ++iter) {
+        const JSON obj = *iter;
+
+        Column::Pointer thisDiff = std::make_shared<Column>(shared_from_this());
+        thisDiff->fromJSON(obj);
+        columns.push_back(thisDiff);
+    }
 }
 
 /**
@@ -278,10 +336,26 @@ DataModel::Table::toJSON(JSON &json) const {
  */
 DataModel::Column::Pointer
 DataModel::Table::createColumn(const std::string &colName, DataModel::Column::DataType dt) {
-    Column::Pointer col = std::make_shared<Column>(dt);
+    Column::Pointer col = std::make_shared<Column>(shared_from_this(), dt);
     columns.push_back(col);
     col->setName(colName)
-        .setDbName(colName)
+        .setDbName(camelToLower(colName))
             ;
     return col;
+}
+
+/**
+ * Find this column.
+ */
+const DataModel::Column::Pointer
+DataModel::Table::findColumn(const std::string &colName) const {
+    return columns.findIf( [=](const Column::Pointer &ptr){ return ptr->getName() == colName; } );
+}
+
+/**
+ * Find our primary key.
+ */
+const DataModel::Column::Pointer
+DataModel::Table::findPrimaryKey() const {
+    return columns.findIf( [=](const Column::Pointer &ptr){ return ptr->getIsPrimaryKey(); } );
 }

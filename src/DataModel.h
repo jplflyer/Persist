@@ -12,6 +12,8 @@ public:
     typedef std::shared_ptr<DataModel> Pointer;
     typedef ShowLib::JSONSerializableVector<DataModel> Vector;
 
+    class Table;
+
     /**
      * One column in a table.
      */
@@ -80,15 +82,19 @@ public:
         //		am not taking the time to ensure I know how.
 
         Column() = default;
-        Column(DataType dt);
+        Column(std::shared_ptr<Table> t);
+        Column(std::shared_ptr<Table> t, DataType dt);
 
         bool deepEquals(const Column &orig) const;
 
         void fromJSON(const JSON &) override;
         JSON toJSON(JSON &) const override;
 
+        std::weak_ptr<Table> getOurTable() const { return ourTable; }
+
         const std::string getName() const { return name; }
         const std::string getDbName() const { return dbName; }
+        const std::string getReferenceStr() const { return referenceStr; }
         DataType getDataType() const { return dataType; }
         int getLength() const { return dataLength; }
         int getPercisionP() const { return precisionP; }
@@ -97,8 +103,17 @@ public:
         bool getIsPrimaryKey() const { return isPrimaryKey; }
         bool getWantIndex() const { return wantIndex; }
 
+        Pointer getReferences() const { return references; }
+
         Column & setName(const std::string &value) { name = value; return *this; }
         Column & setDbName(const std::string &value) { dbName = value; return *this; }
+
+        Column & setReferenceStr(const std::string &value) {
+            referenceStr = value;
+            references = nullptr;
+            return *this;
+        }
+
         Column & setDataType(DataType dt) { dataType = dt; return *this; }
         Column & setLength(int length) { dataLength = length; return *this; }
         Column & setPrecision(int p, int s) { precisionP = p; precisionS = s; return *this; }
@@ -106,7 +121,14 @@ public:
         Column & setIsPrimaryKey(bool value) { isPrimaryKey = value; return *this; }
         Column & setWantIndex(bool value) { wantIndex = value; return *this; }
 
+        Column & setReferences(Pointer value) { references = value; return *this; }
+
+        std::string fullName() const;
+
     private:
+        /** What table contains us? */
+        std::weak_ptr<Table> ourTable;
+
         /** This is the name within C++ */
         std::string	name;
 
@@ -138,7 +160,7 @@ public:
     /**
      * One table in the database.
      */
-    class Table: public ShowLib::JSONSerializable
+    class Table: public std::enable_shared_from_this<Table>, public ShowLib::JSONSerializable
     {
     public:
         typedef std::shared_ptr<Table> Pointer;
@@ -157,6 +179,9 @@ public:
 
         Column::Pointer createColumn(const std::string &colName, Column::DataType dt);
         const Column::Pointer findColumn(const std::string &colName) const;
+        const Column::Pointer findPrimaryKey() const;
+
+        const Column::Vector & getColumns() const { return columns; }
 
     private:
         Column::Vector	columns;
@@ -176,9 +201,10 @@ public:
     void fromJSON(const JSON &) override;
     JSON toJSON(JSON &) const override;
 
-
     Table::Pointer createTable(const std::string &tableName);
     const Table::Pointer findTable(const std::string &tableName) const;
+
+    bool fixReferences();
 
 private:
     Table::Vector tables;
