@@ -142,8 +142,10 @@ CodeGenerator_CPP::generateH(Table &table) {
 
     for (const Column::Pointer &column: table.getColumns()) {
         string cType = cTypeFor(column->getDataType());
+        bool isStr = isString(cType);
+        string ns { isStr ? "std::" : "" };
 
-        ofs << "    " << cType << " " << column->getName();
+        ofs << "    " << ns << cType << " " << column->getName();
         if (isInt(cType)) {
             ofs << " = 0";
         }
@@ -173,7 +175,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
 
     ofs << "#include <iostream>" << endl
         << endl
-        << "#include \"" << tName << ".h\";" << endl
+        << "#include \"" << tName << ".h\"" << endl
         << endl
         << "using std::string;" << endl
         << endl
@@ -209,7 +211,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
         ofs << "    json[\"" << column->getName() << "\"] = " << column->getName() << ";" << endl;
     }
 
-    ofs << "    return json " << endl
+    ofs << "    return json; " << endl
         << "}" << endl << endl;
 }
 
