@@ -24,5 +24,6 @@ private:
     void generateCPP_ParseOne(DataModel::Table &, std::ostream &);
     void generateCPP_DoInsert(DataModel::Table &, std::ostream &);
     void generateCPP_DoUpdate(DataModel::Table &, std::ostream &);
+    void generateCPP_DeleteWithId(DataModel::Table &, std::ostream &);
 };
 

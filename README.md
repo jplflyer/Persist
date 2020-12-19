@@ -112,3 +112,19 @@ This is main.cpp from the example directory:
             return 1;
         }
     }
+
+# Running the Examples
+The example requires the following libs:
+
+    ShowLib: https://github.com/jplflyer/ShowLib
+    cpp-faker: https://github.com/jplflyer/cpp-faker
+
+These are easy to build and install. Check them out and then for each:
+
+    make && sudo make install
+
+cpp-faker creates fake data. You don't need it for anything else (but it is kind of cool).
+
+In addition, you'll need libpq and libpqxx.
+
+# Using the generated code.

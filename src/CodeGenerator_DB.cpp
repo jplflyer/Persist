@@ -84,6 +84,7 @@ CodeGenerator_DB::generateH(Table &table) {
         << "public:" << endl
         << "\tstatic " << baseClassName << "::Vector readAll(pqxx::connection &, std::string whereClause = \"\");"  << endl
         << "\tstatic void update(pqxx::connection &, " << baseClassName << " &);"  << endl
+        << "\tstatic void deleteWithId(pqxx::connection &, int);"  << endl
         << endl
            ;
 
@@ -166,6 +167,8 @@ CodeGenerator_DB::generateCPP(Table &table) {
     //--------------------------------------------------
     generateCPP_DoInsert(table, ofs);
     generateCPP_DoUpdate(table, ofs);
+
+    generateCPP_DeleteWithId(table, ofs);
 }
 
 /**
@@ -320,5 +323,22 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs) {
         << "\twork.commit();" << endl
         << "}" << endl
         << endl
+           ;
+}
+
+/**
+ * This writes deleteWithId().
+ */
+void CodeGenerator_DB::generateCPP_DeleteWithId(Table &table, std::ostream &ofs) {
+    string baseClassName = table.getName();
+    string myClassName = string{"DB_"} + baseClassName;
+    const Column::Pointer pk = table.findPrimaryKey();
+    string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
+
+    ofs << "void " << myClassName << "::deleteWithId(pqxx::connection &conn, int id) {"  << endl
+        << "\tpqxx::work work {conn};" << endl
+        << "\twork.exec_params(\"DELETE FROM " << table.getDbName() << " WHERE " << pk->getDbName() << " = $1\", id);" << endl
+        << "\twork.commit();" << endl
+        << "}" << endl
            ;
 }

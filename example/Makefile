@@ -23,7 +23,7 @@ VPATH := .:${GENDIR}
 # Be careful with CXX flags and use = instead of := so that INCLUDES gets late expansion.
 INCLUDES := -I${GENDIR} -I/usr/local/include
 CXXFLAGS = ${INCLUDES} --std=c++17 -g -Wno-unused-local-typedefs -Wno-deprecated-declarations ${AUTO_ARGUMENT}
-LDFLAGS := -L/usr/local/lib -lshow${MACAPPEND} -lpqxx -lpq
+LDFLAGS := -L/usr/local/lib -lshow${MACAPPEND} -lfaker -lboost_filesystem -lpqxx -lpq
 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 
