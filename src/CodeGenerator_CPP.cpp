@@ -27,7 +27,7 @@ CodeGenerator_CPP::CodeGenerator_CPP()
 void
 CodeGenerator_CPP::generate(DataModel &model) {
     if (outputFileName.length() == 0) {
-        cerr << "CodeGenerator_CPP::generate() with no output file specified." << endl;
+        cerr << "CodeGenerator_CPP::generate() with no output directory specified." << endl;
         exit(2);
     }
 

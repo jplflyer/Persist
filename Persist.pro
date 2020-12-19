@@ -6,8 +6,14 @@ CONFIG -= qt
 CONFIG += sdk_no_version_check
 
 INCLUDEPATH += ./src ../ShowLib/include ../ShowLib /usr/local/include
+INCLUDEPATH += example example/gensrc
 
 SOURCES += \
+    example/gensrc/Bar.cpp \
+    example/gensrc/DB_Bar.cpp \
+    example/gensrc/DB_Foo.cpp \
+    example/gensrc/Foo.cpp \
+    example/main.cpp \
     src/CodeGenerator.cpp \
     src/CodeGenerator_CPP.cpp \
     src/CodeGenerator_DB.cpp \
@@ -19,6 +25,10 @@ SOURCES += \
     tests/main-test.cpp
 
 HEADERS += \
+    example/gensrc/Bar.h \
+    example/gensrc/DB_Bar.h \
+    example/gensrc/DB_Foo.h \
+    example/gensrc/Foo.h \
     src/CodeGenerator.h \
     src/CodeGenerator_CPP.h \
     src/CodeGenerator_DB.h \

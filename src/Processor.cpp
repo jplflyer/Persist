@@ -6,6 +6,7 @@
 
 #include "CodeGenerator_CPP.h"
 #include "CodeGenerator_SQL.h"
+#include "CodeGenerator_DB.h"
 #include "Processor.h"
 
 using std::cout;
@@ -139,4 +140,8 @@ Processor::generate() {
     CodeGenerator_CPP cppGen;
     cppGen.outputFileName = srcDirName;
     cppGen.generate(model);
+
+    CodeGenerator_DB dbGen;
+    dbGen.outputFileName = srcDirName;
+    dbGen.generate(model);
 }
