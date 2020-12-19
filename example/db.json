@@ -1,0 +1,55 @@
+{
+  "tables": [
+    {
+      "columns": [
+        {
+          "dataType": "Integer",
+          "dbName": "id",
+          "isPrimaryKey": true,
+          "name": "id",
+          "nullable": false
+        },
+        {
+          "dataType": "VarChar",
+          "dbName": "username",
+          "isPrimaryKey": false,
+          "length": 256,
+          "name": "username",
+          "nullable": true
+        }
+      ],
+      "dbName": "Foo",
+      "name": "Foo"
+    },
+    {
+      "columns": [
+        {
+          "dataType": "Serial",
+          "dbName": "id",
+          "isPrimaryKey": true,
+          "name": "id",
+          "nullable": false
+        },
+        {
+          "dataType": "VarChar",
+          "dbName": "username",
+          "isPrimaryKey": false,
+          "length": 256,
+          "name": "username",
+          "nullable": true
+        },
+        {
+          "dataType": "Integer",
+          "dbName": "foo_id",
+          "isPrimaryKey": false,
+          "name": "fooId",
+          "nullable": true,
+          "references": "Foo",
+		  "wantIndex": true
+        }
+      ],
+      "dbName": "Bar",
+      "name": "Bar"
+    }
+  ]
+}
