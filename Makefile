@@ -61,6 +61,15 @@ DataModeler: ${OBJS}
 	$(CXX) ${OBJS} -lshow${MACAPPEND} ${LDFLAGS} $(OUTPUT_OPTION)
 
 #======================================================================
+# Install
+#======================================================================
+.PHONY: install
+install: /usr/local/bin/DataModeler
+/usr/local/bin/DataModeler: DataModeler
+		cp DataModeler /usr/local/bin/DataModeler
+
+
+#======================================================================
 # Tests
 #======================================================================
 
