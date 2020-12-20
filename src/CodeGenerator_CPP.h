@@ -9,11 +9,17 @@ public:
 
     void generate(DataModel &) override;
 
+    std::string cppStubDirName;
     bool wantJSON = true;
 
 private:
+    // This generates the base classes
     void generateH(DataModel::Table &);
     void generateCPP(DataModel::Table &);
+
+    // This generates subclasses only if they don't already exist.
+    void generateConcreteH(DataModel::Table &);
+    void generateConcreteCPP(DataModel::Table &);
 
     bool isInt(const std::string &);
     bool isDouble(const std::string &);

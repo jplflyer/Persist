@@ -4,6 +4,7 @@ CONFIG += console c++17
 CONFIG -= app_bundle
 CONFIG -= qt
 CONFIG += sdk_no_version_check
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
 
 INCLUDEPATH += ./src ../ShowLib/include ../ShowLib /usr/local/include
 INCLUDEPATH += example example/gensrc

@@ -134,14 +134,15 @@ Processor::writeModel() {
 void
 Processor::generate() {
     CodeGenerator_SQL sqlGen;
-    sqlGen.outputFileName = "db.sql";
+    sqlGen.outputFileName = sqlFileName;
     sqlGen.generate(model);
 
     CodeGenerator_CPP cppGen;
-    cppGen.outputFileName = srcDirName;
+    cppGen.outputFileName = cppDirName;
+    cppGen.cppStubDirName = cppStubDirName.length() > 0 ? cppStubDirName : cppDirName;
     cppGen.generate(model);
 
     CodeGenerator_DB dbGen;
-    dbGen.outputFileName = srcDirName;
+    dbGen.outputFileName = cppDirName;
     dbGen.generate(model);
 }

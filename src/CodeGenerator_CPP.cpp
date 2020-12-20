@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include <showlib/StringUtils.h>
 
@@ -26,7 +27,7 @@ CodeGenerator_CPP::CodeGenerator_CPP()
  */
 void
 CodeGenerator_CPP::generate(DataModel &model) {
-    if (outputFileName.length() == 0) {
+    if (cppStubDirName.length() == 0) {
         cerr << "CodeGenerator_CPP::generate() with no output directory specified." << endl;
         exit(2);
     }
@@ -34,6 +35,9 @@ CodeGenerator_CPP::generate(DataModel &model) {
     for (const Table::Pointer & table: model.getTables()) {
         generateH(*table);
         generateCPP(*table);
+
+        generateConcreteH(*table);
+        generateConcreteCPP(*table);
     }
 }
 
@@ -42,8 +46,9 @@ CodeGenerator_CPP::generate(DataModel &model) {
  */
 void
 CodeGenerator_CPP::generateH(Table &table) {
-    string tName = table.getName();
-    string hName = outputFileName + "/" + tName + ".h";
+    string name = table.getName();
+    string myClassName = name + "_Base";
+    string hName = cppStubDirName + "/" + myClassName + ".h";
     std::ofstream ofs{hName};
 
     //--------------------------------------------------
@@ -85,7 +90,10 @@ CodeGenerator_CPP::generateH(Table &table) {
     //--------------------------------------------------
     // Opening.
     //--------------------------------------------------
-    ofs << "class " << table.getName();
+    ofs << "class " << name << ";" << endl
+        << endl
+        << "class " << myClassName
+          ;
 
     if (wantJSON) {
         ofs << ": public ShowLib::JSONSerializable";
@@ -96,10 +104,11 @@ CodeGenerator_CPP::generateH(Table &table) {
     //--------------------------------------------------
     ofs << " {" << endl
         << "public:" << endl
-        << "    typedef std::shared_ptr<" << tName << "> Pointer;" << endl
-        << "    typedef std::weak_ptr<" << tName << "> WPointer;" << endl
+        << "    typedef std::shared_ptr<" << name << "> Pointer;" << endl
+        << "    typedef std::weak_ptr<" << name << "> WPointer;" << endl
         << "    typedef std::vector<Pointer> Vector;" << endl
         << endl
+        << "	virtual ~" << myClassName << "();" << endl
            ;
 
     //--------------------------------------------------
@@ -118,7 +127,7 @@ CodeGenerator_CPP::generateH(Table &table) {
             << "() const { return " << column->getName() << "; }" << endl;
            ;
 
-        ofs << "    " << tName << " & set" << upperName
+        ofs << "    " << myClassName << " & set" << upperName
             << " (" << constness << ns << cType << refness << " value)"
             << " { " << column->getName() << " = value; return *this; }"
             << endl;
@@ -169,15 +178,19 @@ CodeGenerator_CPP::generateH(Table &table) {
  */
 void
 CodeGenerator_CPP::generateCPP(Table &table) {
-    string tName = table.getName();
-    string cppName = outputFileName + "/" + tName + ".cpp";
+    string name = table.getName();
+    string myClassName = name + "_Base";
+    string cppName = cppStubDirName + "/" + myClassName + ".cpp";
     std::ofstream ofs{cppName};
 
     ofs << "#include <iostream>" << endl
         << endl
-        << "#include \"" << tName << ".h\"" << endl
+        << "#include \"" << myClassName << ".h\"" << endl
         << endl
         << "using std::string;" << endl
+        << endl
+        << myClassName << "::~" << myClassName << "() {" << endl
+        << "}" << endl
         << endl
        ;
 
@@ -187,7 +200,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
     ofs << "/**" << endl
         << " * Read from JSON." << endl
         << " */" << endl
-        << "void " << tName << "::fromJSON(const JSON &json) {" << endl
+        << "void " << myClassName << "::fromJSON(const JSON &json) {" << endl
            ;
 
     for (const Column::Pointer &column: table.getColumns()) {
@@ -204,7 +217,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
     ofs << "/**" << endl
         << " * Write to JSON." << endl
         << " */" << endl
-        << "JSON " << tName << "::toJSON(JSON &json) const {" << endl
+        << "JSON " << myClassName << "::toJSON(JSON &json) const {" << endl
            ;
 
     for (const Column::Pointer &column: table.getColumns()) {
@@ -213,6 +226,51 @@ CodeGenerator_CPP::generateCPP(Table &table) {
 
     ofs << "    return json; " << endl
         << "}" << endl << endl;
+}
+
+/**
+ * Generate the concrete base class.h if it doesn't exist.
+ */
+void CodeGenerator_CPP::generateConcreteH(DataModel::Table &table)
+{
+    string name = table.getName();
+    string baseClassName = name + "_Base";
+    string hName = outputFileName + "/" + name + ".h";
+
+    if (!std::filesystem::exists(hName)) {
+        std::ofstream ofs{hName};
+
+        ofs << "#pragma once" << endl
+            << endl
+            << "#include <iostream>" << endl
+            << "#include <string>" << endl
+            << "#include <" << baseClassName << ".h>" << endl
+            << endl
+            << "class " << name << ": public " << baseClassName << " {" << endl
+            << "public:" << endl
+            << "\t~" << name << "();" << endl
+            << "};" << endl
+               ;
+    }
+
+}
+
+/**
+ * Generate the concrete base class.cpp if it doesn't exist.
+ */
+void CodeGenerator_CPP::generateConcreteCPP(DataModel::Table &table)
+{
+    string name = table.getName();
+    string cppName = outputFileName + "/" + name + ".cpp";
+
+    if (!std::filesystem::exists(cppName)) {
+        std::ofstream ofs{cppName};
+        ofs << "#include <" << name << ".h>" << endl
+            << endl
+            << name << "::~" << name << "() {" << endl
+            << "}" << endl
+               ;
+    }
 }
 
 //----------------------------------------------------------------------

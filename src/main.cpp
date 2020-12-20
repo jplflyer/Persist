@@ -29,7 +29,15 @@ int main(int argc, char **argv)
     args.addNoArg("create",   [&](const char *){ doCreate = true; }, "Create a DataModel file");
     args.addNoArg("generate", [&](const char *){ doGenerate = true; }, "Generate output");
     args.addArg  ("model",    [&](const char *arg){ processor.setFileName(arg); }, "fname", "Specify the input/output data model file");
-    args.addArg  ("srcdir",   [&](const char *arg){ processor.setSrcDirName(arg); }, "dirname", "Directory for .cpp files");
+
+    // Specific to cpp output.
+    args.addArg  ("cppdir",   [&](const char *arg){ processor.setCppDirName(arg); }, "dirname", "Directory for cpp output.");
+    args.addArg  ("stubdir",  [&](const char *arg){ processor.setCppStubDirName(arg); }, "dirname", "The stubs can go to a differe name.");
+
+    // Specific to model.sql output.
+    args.addArg  ("sql",      [&](const char *arg){ processor.setSQLFileName(arg); }, "foo.sql", "File to write SQL.");
+
+    // Specific to manipulating the model.json file.
     args.addArg  ("table",    [&](const char *arg){ table = processor.specifyTable(arg); }, "tablename", "Create/Update this table");
     args.addArg  ("column",   [&](const char *arg){ specifyColumn(arg); }, "columnname[,type]", "Create/Update this column");
     args.addNoArg("pk",       [&](const char *){ if (column != nullptr) column->setIsPrimaryKey(true); }, "Mark column as a primery key.");
