@@ -209,8 +209,11 @@ public:
 
     bool fixReferences();
 
+    bool getIsDirty() { return isDirty; }
+
 private:
     Table::Vector tables;
+    bool isDirty = false;
 };
 
 std::string toString(DataModel::Column::DataType dt);

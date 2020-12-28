@@ -2,6 +2,7 @@
 DataModeler
 test-bin-mac/
 test.json
+build-*
 
 *~
 *.core
