@@ -7,16 +7,20 @@ DEPENDPATH += $$PWD/../../../../../usr/local/include
 
 SOURCES += \
     Configuration.cpp \
+    TableForm.cpp \
     main.cpp \
-    MainWindow.cpp
-	../Persist/src/DataModel.h
+	MainWindow.cpp \
+	../src/DataModel.cpp
 
 HEADERS += \
     Configuration.h \
-    MainWindow.h
+	MainWindow.h \
+	../src/DataModel.h \
+    TableForm.h
 
 FORMS += \
-    MainWindow.ui
+    MainWindow.ui \
+    TableForm.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

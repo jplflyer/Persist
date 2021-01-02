@@ -57,6 +57,8 @@ public:
             TimestampTZ		// Date & time with tZ
         };
 
+        typedef std::pair<std::string, DataModel::Column::DataType> DataTypePair;
+
         // Types I'm skipping for now:
         //
         //		box
@@ -84,6 +86,8 @@ public:
         Column() = default;
         Column(std::shared_ptr<Table> t);
         Column(std::shared_ptr<Table> t, DataType dt);
+
+        virtual ~Column();
 
         bool deepEquals(const Column &orig) const;
 
@@ -124,6 +128,8 @@ public:
         Column & setReferences(Pointer value) { references = value; return *this; }
 
         std::string fullName(bool useDbName = false) const;
+        std::string precisionStr() const;
+        std::string flagsStr() const;
 
     private:
         /** What table contains us? */
@@ -166,6 +172,8 @@ public:
         typedef std::shared_ptr<Table> Pointer;
         typedef ShowLib::JSONSerializableVector<Table> Vector;
 
+        virtual ~Table();
+
         bool deepEquals(const Table &orig) const;
 
         void fromJSON(const JSON &) override;
@@ -205,11 +213,13 @@ public:
     const Table::Pointer findTable(const std::string &tableName) const;
 
     const Table::Vector & getTables() const { return tables; }
-
+    void pushTable(DataModel::Table::Pointer);
 
     bool fixReferences();
 
-    bool getIsDirty() { return isDirty; }
+    bool getIsDirty() const { return isDirty; }
+    void markDirty() { isDirty = true; }
+    void markClean() { isDirty = false; }
 
 private:
     Table::Vector tables;
@@ -222,5 +232,7 @@ bool dataTypeHasLength(DataModel::Column::DataType dt);
 bool dataTypeHasPrecision(DataModel::Column::DataType dt);
 bool dataTypeIsSerial(DataModel::Column::DataType dt);
 std::string cTypeFor(DataModel::Column::DataType dt);
+
+std::vector<DataModel::Column::DataTypePair> & allDataTypes();
 
 

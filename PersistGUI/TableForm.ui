@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TableForm</class>
+ <widget class="QWidget" name="TableForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>821</width>
+    <height>632</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QWidget" name="tableInfoContainer" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="QLabel" name="tableNameL">
+        <property name="text">
+         <string>Name:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="tableNameTF"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="dbTableNameL">
+        <property name="text">
+         <string>DB Table Name:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="dbTableNameTF"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTableWidget" name="columnsTable"/>
+   </item>
+   <item>
+    <widget class="QWidget" name="buttonsContainer" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="addBtn">
+        <property name="text">
+         <string>Add</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="colFrame">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QWidget" name="colContainer" native="true">
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="5" column="1">
+          <widget class="QLineEdit" name="precisionTF"/>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="precisionL">
+           <property name="text">
+            <string>Precision</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="dbNameL">
+           <property name="text">
+            <string>Database Column Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="nameL">
+           <property name="text">
+            <string>Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="nameTF"/>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="lengthL">
+           <property name="text">
+            <string>Length</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="scaleL">
+           <property name="text">
+            <string>Scale</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="dbNameTF"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="datatypeL">
+           <property name="text">
+            <string>Datatype</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="lengthTF"/>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLineEdit" name="scaleTF"/>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="datatypeCB"/>
+         </item>
+         <item row="3" column="0" colspan="2">
+          <widget class="QWidget" name="flagsContainer" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QCheckBox" name="primaryKeyCB">
+              <property name="text">
+               <string>Primary Key</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="nullableCB">
+              <property name="text">
+               <string>Nullable</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="indexCB">
+              <property name="text">
+               <string>Index</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="foreignKeyCB">
+              <property name="text">
+               <string>Foreign Key</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="7" column="0">
+          <widget class="QLabel" name="referenceL">
+           <property name="text">
+            <string>Foreign Reference</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QWidget" name="referenceContainer" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QComboBox" name="referenceTableCB"/>
+            </item>
+            <item>
+             <widget class="QComboBox" name="referenceColumnCB"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

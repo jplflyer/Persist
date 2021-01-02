@@ -18,7 +18,7 @@
           "nullable": true
         }
       ],
-      "dbName": "Foo",
+      "dbName": "foo",
       "name": "Foo"
     },
     {
@@ -44,12 +44,42 @@
           "isPrimaryKey": false,
           "name": "fooId",
           "nullable": true,
-          "references": "Foo",
-		  "wantIndex": true
+          "references": "Foo.id",
+          "wantIndex": true
         }
       ],
-      "dbName": "Bar",
+      "dbName": "bar",
       "name": "Bar"
+    },
+    {
+      "columns": [
+        {
+          "dataType": "Integer",
+          "dbName": "id",
+          "isPrimaryKey": true,
+          "name": "id",
+          "nullable": true
+        },
+        {
+          "dataType": "Integer",
+          "dbName": "foo_id",
+          "isPrimaryKey": false,
+          "name": "fooId",
+          "nullable": true,
+          "references": "Foo.id"
+        },
+        {
+          "dataType": "Numeric",
+          "dbName": "new_column",
+          "isPrimaryKey": false,
+          "name": "newColumn",
+          "nullable": true,
+          "precisionP": 4,
+          "precisionS": 2
+        }
+      ],
+      "dbName": "gleep",
+      "name": "Gleep"
     }
   ]
 }

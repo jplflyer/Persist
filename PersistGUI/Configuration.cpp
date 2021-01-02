@@ -110,6 +110,7 @@ Configuration & Configuration::pushRecent(const std::string &fileName) {
     recents.remove(fileName);
     recents.insert(recents.begin(), std::make_shared<string>(fileName));
     trimRecents();
+    return *this;
 }
 
 void Configuration::trimRecents() {

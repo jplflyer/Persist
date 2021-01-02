@@ -72,6 +72,10 @@ DataModel::findTable(const std::string &tableName) const {
     return tables.findIf( [=](const Table::Pointer &ptr){ return ptr->getName() == tableName; } );
 }
 
+void DataModel::pushTable(DataModel::Table::Pointer table) {
+    tables.push_back(table);
+}
+
 /**
  * This goes through all tables and finds any with foreign key relationships.
  * It updates their pointers.
@@ -127,13 +131,18 @@ public:
 };
 
 // These two maps are reverses of each other for rapid lookup.
-static std::map<std::string, DataTypeInfo> stringToDataTypeMap;
-static std::map<DataModel::Column::DataType, DataTypeInfo> dataTypesMap;
-static std::mutex mapMutex;
+static std::map<std::string, DataTypeInfo> * stringToDataTypeMap = nullptr;
+static std::map<DataModel::Column::DataType, DataTypeInfo> * dataTypesMap = nullptr;
+static std::vector<std::pair<std::string, DataType>> * dataTypeVector = nullptr;
 
 static void populateMaps() {
+    static std::mutex mapMutex;
     std::unique_lock<std::mutex> lock(mapMutex);
-    if (stringToDataTypeMap.size() == 0) {
+    if (stringToDataTypeMap == nullptr) {
+        stringToDataTypeMap = new std::map<std::string, DataTypeInfo>();
+        dataTypesMap = new std::map<DataModel::Column::DataType, DataTypeInfo>();
+        dataTypeVector = new std::vector<std::pair<std::string, DataType>>();
+
         std::vector<DataTypeInfo> vec;
 
         // TODO: Some of these are wrong.
@@ -161,8 +170,10 @@ static void populateMaps() {
 
         for (DataTypeInfo &info: vec) {
             info.lowerName = toLower(info.name);
-            stringToDataTypeMap[info.lowerName] = info;
-            dataTypesMap[info.dataType] = info;
+            (*stringToDataTypeMap)[info.lowerName] = info;
+            (*dataTypesMap)[info.dataType] = info;
+
+            dataTypeVector->push_back( {info.name, info.dataType} );
         }
     }
 }
@@ -172,7 +183,7 @@ static void populateMaps() {
  */
 std::string toString(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypesMap[dt].name;
+    return dataTypesMap->at(dt).name;
 }
 
 /**
@@ -181,17 +192,17 @@ std::string toString(DataModel::Column::DataType dt) {
 DataModel::Column::DataType toDataType(const std::string &str) {
     populateMaps();
     string searchFor = toLower(str);
-    return stringToDataTypeMap[searchFor].dataType;
+    return stringToDataTypeMap->at(searchFor).dataType;
 }
 
 bool dataTypeHasLength(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypesMap[dt].hasLength;
+    return dataTypesMap->at(dt).hasLength;
 }
 
 bool dataTypeHasPrecision(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypesMap[dt].hasPrecision;
+    return dataTypesMap->at(dt).hasPrecision;
 }
 
 /**
@@ -199,7 +210,7 @@ bool dataTypeHasPrecision(DataModel::Column::DataType dt) {
  */
 bool dataTypeIsSerial(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypesMap[dt].isSerial;
+    return dataTypesMap->at(dt).isSerial;
 }
 
 /**
@@ -207,8 +218,14 @@ bool dataTypeIsSerial(DataModel::Column::DataType dt) {
  */
 string cTypeFor(DataModel::Column::DataType dt) {
     populateMaps();
-    return dataTypesMap[dt].cType;
+    return dataTypesMap->at(dt).cType;
 }
+
+std::vector<std::pair<std::string, DataModel::Column::DataType>> & allDataTypes() {
+    populateMaps();
+    return *dataTypeVector;
+}
+
 
 
 /**
@@ -225,6 +242,12 @@ DataModel::Column::Column(Table::Pointer t)
 DataModel::Column::Column(Table::Pointer t, DataType dt)
     : ourTable(t), dataType(dt)
 {
+}
+
+/**
+ * Destructor.
+ */
+DataModel::Column::~Column() {
 }
 
 /**
@@ -275,7 +298,13 @@ DataModel::Column::toJSON(JSON &json) const {
     setLongValue(json, "precisionP", precisionP);
     setLongValue(json, "precisionS", precisionS);
 
-    setStringValue(json, "references", referenceStr);
+    if (references != nullptr) {
+        Table::Pointer refTable = references->getOurTable().lock();
+        setStringValue(json, "references", refTable->getName() + "." + references->getName());
+    }
+    else {
+        setStringValue(json, "references", referenceStr);
+    }
 
     json["nullable"] = nullable;
     json["isPrimaryKey"] = isPrimaryKey;
@@ -296,9 +325,55 @@ DataModel::Column::fullName(bool useDbName) const {
     return (useDbName ? table->getDbName() : table->getName()) + " (" + (useDbName ? name : dbName) + ")";
 }
 
+/**
+ * Return a string representing the precision / length
+ */
+std::string
+DataModel::Column::precisionStr() const {
+    string retVal;
+
+    if (dataTypeHasPrecision(dataType)) {
+        retVal = std::to_string(precisionP) + "." + std::to_string(precisionS);
+    }
+    else if (dataTypeHasLength(dataType)) {
+        if (dataLength > 0) {
+            retVal = std::to_string(dataLength);
+        }
+    }
+
+    return retVal;
+}
+
+std::string
+DataModel::Column::flagsStr() const {
+    string retVal;
+    string delim;
+
+    if (!nullable) {
+        retVal = retVal + delim + "NOT NULL";
+        delim = " ";
+    }
+    if (isPrimaryKey) {
+        retVal = retVal + delim + "PRIMARY KEY";
+        delim = " ";
+    }
+    if (wantIndex) {
+        retVal = retVal + delim + "INDEX";
+        delim = " ";
+    }
+
+    return retVal;
+}
+
 //======================================================================
 // Tables.
 //======================================================================
+
+/**
+ * Destructor.
+ */
+DataModel::Table::~Table() {
+}
 
 /**
  * Perform a deep comparison.
