@@ -1,4 +1,5 @@
-QT       += core gui widgets
+ICON    = Icon.icns
+QT      += core gui widgets
 CONFIG  += c++17
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
 

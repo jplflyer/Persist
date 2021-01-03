@@ -10,6 +10,8 @@ Ultimately, it would be great if there was a driver that could point to an exist
 # License
 This project uses the MIT license, attached in a separate file.
 
+<div>Icons made by <a href="https://www.flaticon.com/authors/phatplus" title="phatplus">phatplus</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+
 # Overall Concept
 Imagine a typical web application. There's a client that runs on the browser. Most typically that's JavaScript + HTML + CSS. There's a server that handles requests. And there's some sort of database for persistence.
 
