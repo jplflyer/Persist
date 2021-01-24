@@ -53,7 +53,6 @@ TableForm::TableForm(DataModel &m, DataModel::Table::Pointer tPtr, QWidget *pare
     std::vector<DataTypePair> & dataTypes = allDataTypes();
 
     QComboBox &cb = *ui->datatypeCB;
-    cout << "Number of data types: " << dataTypes.size() << endl;
     for (DataTypePair &pair: dataTypes) {
         cb.addItem(QString::fromStdString(pair.first));
     }
@@ -318,7 +317,6 @@ void TableForm::on_referenceColumnCB_currentIndexChanged(int) {
         if (tPtr != nullptr) {
             Column::Pointer cPtr = tPtr->findColumn(cName);
             if (cPtr != nullptr) {
-                cout << "Set references." << endl;
                 selectedColumn->setReferences(cPtr);
                 model.markDirty();
             }

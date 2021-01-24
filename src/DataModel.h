@@ -190,6 +190,7 @@ public:
         const Column::Pointer findPrimaryKey() const;
 
         const Column::Vector & getColumns() const { return columns; }
+        void sortColumns();
 
     private:
         Column::Vector	columns;
@@ -211,6 +212,8 @@ public:
 
     Table::Pointer createTable(const std::string &tableName);
     const Table::Pointer findTable(const std::string &tableName) const;
+    void sortTables();
+    void sortAllColumns();
 
     const Table::Vector & getTables() const { return tables; }
     void pushTable(DataModel::Table::Pointer);

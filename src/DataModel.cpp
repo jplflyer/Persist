@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <mutex>
 
 #include <showlib/StringUtils.h>
@@ -10,6 +11,8 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
+using Table = DataModel::Table;
+using Column = DataModel::Column;
 using DataType = DataModel::Column::DataType;
 
 /**
@@ -113,6 +116,28 @@ DataModel::fixReferences() {
     }
 
     return !errors;
+}
+
+/**
+ * Sort the tables based on name.
+ */
+void
+DataModel::sortTables() {
+    std::sort(tables.begin(), tables.end(),
+        [](const Table::Pointer &first, const Table::Pointer &second)
+        {
+            return first->getName() < second->getName();
+        } );
+}
+
+/**
+ * This runs through all tables and does a sort on all the columns.
+ */
+void
+DataModel::sortAllColumns() {
+    for (Table::Pointer &table: tables) {
+        table->sortColumns();
+    }
 }
 
 //======================================================================
@@ -453,4 +478,17 @@ DataModel::Table::findColumn(const std::string &colName) const {
 const DataModel::Column::Pointer
 DataModel::Table::findPrimaryKey() const {
     return columns.findIf( [=](const Column::Pointer &ptr){ return ptr->getIsPrimaryKey(); } );
+}
+
+/**
+ * Sort the columns based on IsPrimaryKey then by name.
+ */
+void
+DataModel::Table::sortColumns() {
+    std::sort(columns.begin(), columns.end(),
+        [](const DataModel::Column::Pointer &first, const DataModel::Column::Pointer &second)
+        {
+            return first->getIsPrimaryKey() ||
+                ( !second->getIsPrimaryKey() && first->getName() < second->getName() );
+        } );
 }

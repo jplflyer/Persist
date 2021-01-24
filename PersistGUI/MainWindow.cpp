@@ -58,6 +58,8 @@ void MainWindow::load(const std::string &fileName) {
             JSON json = JSON::parse(buffer.str());
             model.fromJSON(json);
             model.fixReferences();
+            model.sortTables();
+            model.sortAllColumns();
             showTables();
         }
     }
@@ -152,7 +154,6 @@ void MainWindow::fixButtons() {
  * Double-clicked a row.
  */
 void MainWindow::on_tableWidget_cellDoubleClicked(int row, int ) {
-    cout << "Selected row : " << row << endl;
     Table::Pointer table = model.getTables()[row];
     for (TableForm *tForm: tableForms) {
         if (tForm->getTable() == table) {
@@ -170,22 +171,13 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int ) {
     newForm->show();
 }
 
+/**
+ * This table has been changed.
+ */
 void
 MainWindow::tableChanged(DataModel::Table::Pointer table) {
-    cout << "Table changed: " << table->getName() << endl;
-    QTableWidget * tWidget = ui->tableWidget;
-    int rowIndex = 0;
-    for (const Table::Pointer & tPtr: model.getTables()) {
-        if (tPtr == table) {
-            QString numColumns = QString::fromStdString( std::to_string(tPtr->getColumns().size()) );
-
-            tWidget->setItem(rowIndex, 0, new QTableWidgetItem(QString::fromStdString(tPtr->getName())));
-            tWidget->setItem(rowIndex, 1, new QTableWidgetItem(QString::fromStdString(tPtr->getDbName())));
-            tWidget->setItem(rowIndex, 2, new QTableWidgetItem(numColumns));
-            break;
-        }
-        ++rowIndex;
-    }
+    model.sortTables();
+    showTables();
 }
 
 /**
