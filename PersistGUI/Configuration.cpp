@@ -6,6 +6,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <showlib/Ranges.h>
+
 #include "Configuration.h"
 
 using std::cout;
@@ -14,6 +16,23 @@ using std::string;
 
 using namespace ShowLib;
 
+Configuration * Configuration::s_singleton = nullptr;
+
+/**
+ * Get our singleton. Do this from main so it's thread-safe.
+ */
+Configuration &
+Configuration::singleton() {
+    if (s_singleton == nullptr) {
+        s_singleton = new Configuration();
+        s_singleton->load();
+    }
+    return *s_singleton;
+}
+
+/**
+ * Private constructor.
+ */
 Configuration::Configuration()
 {
 }
@@ -44,7 +63,7 @@ void Configuration::load() {
         buffer << configFile.rdbuf();
         string contents = buffer.str();
 
-        if (contents.at(0) == '{') {
+        if (contents.size() > 0u && contents.at(0) == '{') {
             JSON json = JSON::parse(buffer.str());
             fromJSON(json);
         }
@@ -57,17 +76,27 @@ void Configuration::load() {
  * Write our config.
  */
 void Configuration::save() {
-    string dirName = getConfigurationDirectory();
-    string fileName = dirName + "/config.json";
-    std::filesystem::path path(dirName);
+    try {
+        cout << "save file..." << endl;
+        string dirName = getConfigurationDirectory();
+        string fileName = dirName + "/config.json";
+        std::filesystem::path path(dirName);
 
-    if (!std::filesystem::exists(dirName)) {
-        std::filesystem::create_directories(path);
+        if (!std::filesystem::exists(dirName)) {
+            std::filesystem::create_directories(path);
+        }
+
+        JSON json = JSON::object();
+        toJSON(json);
+
+        std::ofstream output(fileName);
+        output << json.dump(2) << endl;
     }
-    std::ofstream output(fileName);
-    JSON json;
-    toJSON(json);
-    output << json.dump(2) << endl;
+    catch (std::exception &e) {
+        cout << "Exception: " << e.what() << endl;
+    }
+
+    cout << "save is complete" << endl;
 }
 
 /**
@@ -81,7 +110,8 @@ void Configuration::fromJSON(const JSON &json) {
 /**
  * Write to this JSON.
  */
-JSON Configuration::toJSON(JSON &json) const {
+JSON & Configuration::toJSON(JSON &json) const {
+    cout << "Convert to JSON." << endl;
     JSON recentsJSON { JSON::array() };
 
     recents.toJSON(recentsJSON);
@@ -108,13 +138,14 @@ Configuration & Configuration::setRecentsToKeep(size_t value) {
  */
 Configuration & Configuration::pushRecent(const std::string &fileName) {
     recents.remove(fileName);
-    recents.insert(recents.begin(), std::make_shared<string>(fileName));
+    recents.addFront(fileName);
     trimRecents();
+
     return *this;
 }
 
 void Configuration::trimRecents() {
     while (recents.size() > recentsToKeep) {
-        recents.erase(recents.begin());
+        recents.pop_back();
     }
 }

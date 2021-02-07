@@ -1,27 +1,29 @@
 ICON    = Icon.icns
 QT      += core gui widgets
 CONFIG  += c++17
+CONFIG  += sdk_no_version_check
+
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
 
 INCLUDEPATH += ../src /usr/local/include
-DEPENDPATH += $$PWD/../../../../../usr/local/include
+DEPENDPATH += /usr/local/include
 
 SOURCES += \
-    Configuration.cpp \
-    TableForm.cpp \
-    main.cpp \
+        Configuration.cpp \
+        TableForm.cpp \
+        main.cpp \
 	MainWindow.cpp \
 	../src/DataModel.cpp
 
 HEADERS += \
-    Configuration.h \
-	MainWindow.h \
-	../src/DataModel.h \
-    TableForm.h
+        Configuration.h \
+        MainWindow.h \
+        ../src/DataModel.h \
+        TableForm.h
 
 FORMS += \
-    MainWindow.ui \
-    TableForm.ui
+        MainWindow.ui \
+        TableForm.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -8,22 +8,26 @@
 class Configuration: public ShowLib::JSONSerializable
 {
 private:
+    static Configuration * s_singleton;
+
     bool inLoad = false;
     ShowLib::StringVector recents;
     size_t recentsToKeep = 5;
 
     std::string getConfigurationDirectory();
 
+    // Singleton.
+    Configuration();
     void trimRecents();
 
 public:
-    Configuration();
+    static Configuration & singleton();
 
     void load();
     void save();
 
     void fromJSON(const JSON &) override;
-    JSON toJSON(JSON &) const override;
+    JSON & toJSON(JSON &) const override;
 
     size_t getRecentsToKeep() const { return recentsToKeep; }
     Configuration & setRecentsToKeep(size_t value);

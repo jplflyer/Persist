@@ -2,7 +2,10 @@
 
 #include <vector>
 
+#include <QAction>
 #include <QMainWindow>
+#include <QMenu>
+#include <QList>
 
 #include "DataModel.h"
 #include "TableForm.h"
@@ -30,13 +33,17 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QMenu * recentFilesMenu = nullptr;
+    QList<QAction *> recentFileActions;
 
     DataModel model;
     std::vector<TableForm *> tableForms;
     std::string modelFileName;
 
+    void fixRecents();
     void fixButtons();
-    void load(const std::string &);
+    void load(const std::string);
+    void loadRecent(size_t index);
 
     void showTables();
 };

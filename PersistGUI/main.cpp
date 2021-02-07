@@ -1,9 +1,12 @@
 #include "MainWindow.h"
 
 #include <QApplication>
+#include "Configuration.h"
 
 int main(int argc, char *argv[])
 {
+    Configuration & config = Configuration::singleton();
+
     QApplication a(argc, argv);
     MainWindow w;
     w.show();

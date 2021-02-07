@@ -9,6 +9,7 @@
 
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "Configuration.h"
 
 using std::cout;
 using std::endl;
@@ -16,6 +17,8 @@ using std::string;
 
 using Column = DataModel::Column;
 using Table = DataModel::Table;
+
+using namespace ShowLib;
 
 /**
  * Constructor.
@@ -25,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    fixRecents();
     fixButtons();
     QTableWidget * tWidget = ui->tableWidget;
     tWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -44,10 +48,61 @@ MainWindow::~MainWindow()
 }
 
 /**
+ * Setup the Open Recents file menu action.
+ */
+void
+MainWindow::fixRecents() {
+    if (recentFilesMenu == nullptr) {
+        recentFilesMenu = new QMenu(tr("Open Recent"), this);
+        ui->menuFile->insertMenu(ui->actionClose, recentFilesMenu);
+    }
+
+    const StringVector & recents = Configuration::singleton().getRecents();
+    size_t countRecents = recents.size();
+    size_t countActions = recentFileActions.size();
+    cout << "Number of recents: " << countRecents << endl;
+
+    for (size_t index = 0; index < countRecents; ++index) {
+        cout << "Recent at " << index << " == " << *recents.at(index) << endl;
+        QAction * thisAction = (index < countActions) ? recentFileActions.at(index) : nullptr;
+        if (thisAction == nullptr) {
+            thisAction = new QAction(this);
+            recentFileActions.push_back(thisAction);
+            recentFilesMenu->addAction(thisAction);
+            ++countActions;
+            connect(thisAction, &QAction::triggered, [=](){ loadRecent(index); });
+        }
+
+        thisAction->setVisible(true);
+        thisAction->setText(QString::fromStdString(*recents.at(index)));
+    }
+
+    // Hide any extras that exist.
+    for (size_t index = countRecents; index < countActions; ++index) {
+        recentFileActions.at(index)->setVisible(false);
+    }
+}
+
+/**
+ * Open Recent was called.
+ */
+void
+MainWindow::loadRecent(size_t index) {
+    const StringVector & recents = Configuration::singleton().getRecents();
+
+    if (index < recents.size()) {
+        load(*recents.at(index));
+    }
+}
+
+/**
  * Load this model.
  */
-void MainWindow::load(const std::string &fileName) {
+void MainWindow::load(const std::string fileName) {
+    cout << "Load: " << fileName << endl;
     if (std::filesystem::exists(fileName) && std::filesystem::is_regular_file(fileName)) {
+        model.clear();
+
         modelFileName = fileName;
         std::ifstream configFile(fileName);
         std::stringstream buffer;
@@ -60,8 +115,12 @@ void MainWindow::load(const std::string &fileName) {
             model.fixReferences();
             model.sortTables();
             model.sortAllColumns();
-            showTables();
+
+            Configuration::singleton().pushRecent(fileName).save();
+            fixRecents();
         }
+
+        showTables();
     }
 }
 
