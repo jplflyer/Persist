@@ -14,6 +14,14 @@ using Table = DataModel::Table;
 using DataType = DataModel::Column::DataType;
 using DataTypePair = DataModel::Column::DataTypePair;
 
+static const int COL_NAME = 0;
+static const int COL_DBNAME = 1;
+static const int COL_DATATYPE = 2;
+static const int COL_PRECISION = 3;
+static const int COL_FLAGS = 4;
+static const int COL_REFERENCES = 5;
+static const int COL_ACTIONS = 6;
+
 /**
  * Constructor.
  */
@@ -35,8 +43,8 @@ TableForm::TableForm(DataModel &m, DataModel::Table::Pointer tPtr, QWidget *pare
     tWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-    tWidget->setColumnCount(6);
-    QStringList headers {"Name", "Database Column Name", "Precision", "Flags", "Reference", "Actions"};
+    tWidget->setColumnCount(7);
+    QStringList headers {"Name", "Database Column Name", "DataType", "Precision", "Flags", "Reference", "Actions"};
     tWidget->setHorizontalHeaderLabels(headers);
     tWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
@@ -71,17 +79,18 @@ void TableForm::displayColumn(int colIndex, DataModel::Column &col) {
     QTableWidget * tWidget = ui->columnsTable;
 
     tWidget->setRowCount(table->getColumns().size());
-    tWidget->setItem(colIndex, 0, new QTableWidgetItem(QString::fromStdString(col.getName())));
-    tWidget->setItem(colIndex, 1, new QTableWidgetItem(QString::fromStdString(col.getDbName())));
-    tWidget->setItem(colIndex, 2, new QTableWidgetItem(QString::fromStdString(col.precisionStr())));
-    tWidget->setItem(colIndex, 3, new QTableWidgetItem(QString::fromStdString(col.flagsStr())));
+    tWidget->setItem(colIndex, COL_NAME, new QTableWidgetItem(QString::fromStdString(col.getName())));
+    tWidget->setItem(colIndex, COL_DBNAME, new QTableWidgetItem(QString::fromStdString(col.getDbName())));
+    tWidget->setItem(colIndex, COL_DATATYPE, new QTableWidgetItem(QString::fromStdString(toString(col.getDataType()))));
+    tWidget->setItem(colIndex, COL_PRECISION, new QTableWidgetItem(QString::fromStdString(col.precisionStr())));
+    tWidget->setItem(colIndex, COL_FLAGS, new QTableWidgetItem(QString::fromStdString(col.flagsStr())));
 
     Column::Pointer refPtr = col.getReferences();
     if (refPtr != nullptr) {
-        tWidget->setItem(colIndex, 4, new QTableWidgetItem(QString::fromStdString(refPtr->fullName())) );
+        tWidget->setItem(colIndex, COL_REFERENCES, new QTableWidgetItem(QString::fromStdString(refPtr->fullName())) );
     }
     else {
-        tWidget->setItem(colIndex, 4, new QTableWidgetItem(""));
+        tWidget->setItem(colIndex, COL_REFERENCES, new QTableWidgetItem(""));
     }
 }
 
@@ -173,6 +182,7 @@ void TableForm::on_nameTF_textChanged(const QString &)
 {
     if (selectedColumn != nullptr) {
         selectedColumn->setName(ui->nameTF->text().toStdString());
+        displayColumn(selectedColumnIndex, *selectedColumn);
         model.markDirty();
     }
 }
@@ -184,6 +194,7 @@ void TableForm::on_dbNameTF_textChanged(const QString &)
 {
     if (selectedColumn != nullptr) {
         selectedColumn->setDbName(ui->dbNameTF->text().toStdString());
+        displayColumn(selectedColumnIndex, *selectedColumn);
         model.markDirty();
     }
 }
@@ -262,6 +273,7 @@ void TableForm::on_foreignKeyCB_stateChanged(int)
             model.markDirty();
         }
 
+        displayColumn(selectedColumnIndex, *selectedColumn);
         model.markDirty();
     }
 
@@ -318,6 +330,7 @@ void TableForm::on_referenceColumnCB_currentIndexChanged(int) {
             Column::Pointer cPtr = tPtr->findColumn(cName);
             if (cPtr != nullptr) {
                 selectedColumn->setReferences(cPtr);
+                displayColumn(selectedColumnIndex, *selectedColumn);
                 model.markDirty();
             }
         }

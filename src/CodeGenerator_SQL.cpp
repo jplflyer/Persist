@@ -49,6 +49,20 @@ CodeGenerator_SQL::generate(DataModel &model) {
         generateForTable(ofs, *table);
     }
 
+    //======================================================================
+    // Foreign keys and indexes.
+    //======================================================================
+    ofs << endl;
+    for (const Table::Pointer & table: model.getTables()) {
+        generateForeignKeys(ofs, *table);
+    }
+
+    ofs << endl;
+    for (const Table::Pointer & table: model.getTables()) {
+        generateIndexes(ofs, *table);
+    }
+
+    ofs << endl;
     ofs << "COMMIT;" << endl;
 }
 
@@ -109,10 +123,6 @@ CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const DataModel::Table &
             ofs << " NOT NULL";
         }
 
-        Column::Pointer references = column->getReferences();
-        if (references != nullptr) {
-            ofs << " REFERENCES " << references->fullName(true) << " ON DELETE CASCADE";
-        }
 
         if (column->getIsPrimaryKey() && needSequence) {
             ofs << " DEFAULT nextval('" << sequenceName << "')";
@@ -131,6 +141,32 @@ CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const DataModel::Table &
             << table.getDbName() << "." << pk->getDbName() << ";" << endl;
     }
 
+}
+
+/**
+ * ALTER TABLE child_table
+ * ADD CONSTRAINT constraint_name
+ * FOREIGN KEY (fk_columns)
+ * REFERENCES parent_table (parent_key_columns)
+ * [ ON DELETE CASCADE ];
+ */
+void CodeGenerator_SQL::generateForeignKeys(std::ofstream &ofs, const DataModel::Table &table) {
+    for (const Column::Pointer &column: table.getColumns()) {
+        Column::Pointer references = column->getReferences();
+        if (references != nullptr) {
+            ofs << "ALTER TABLE " << table.getDbName() << " ADD CONSTRAINT "
+                << table.getDbName() << "_" << column->getDbName()
+                << " FOREIGN KEY (" << column->getDbName() << ")"
+                << " REFERENCES " << references->fullName(true) << " ON DELETE CASCADE;"
+                << endl;
+        }
+    }
+}
+
+/**
+ * Generate CREATE INDEX for this table.
+ */
+void CodeGenerator_SQL::generateIndexes(std::ofstream &ofs, const DataModel::Table &table) {
     //======================================================================
     // Add requested indexes.
     //======================================================================
@@ -139,6 +175,5 @@ CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const DataModel::Table &
             ofs << "   CREATE INDEX ON " << table.getDbName() << " (" << column->getDbName() << ");" << endl;
         }
     }
-    ofs << endl;
 }
 
