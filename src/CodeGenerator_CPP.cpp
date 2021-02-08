@@ -140,7 +140,7 @@ CodeGenerator_CPP::generateH(Table &table) {
     if (wantJSON) {
         ofs << endl;
         ofs << "    void fromJSON(const JSON &) override;" << endl;
-        ofs << "    JSON toJSON(JSON &) const override;" << endl;
+        ofs << "    JSON & toJSON(JSON &) const override;" << endl;
     }
 
     //--------------------------------------------------
@@ -217,7 +217,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
     ofs << "/**" << endl
         << " * Write to JSON." << endl
         << " */" << endl
-        << "JSON " << myClassName << "::toJSON(JSON &json) const {" << endl
+        << "JSON & " << myClassName << "::toJSON(JSON &json) const {" << endl
            ;
 
     for (const Column::Pointer &column: table.getColumns()) {
