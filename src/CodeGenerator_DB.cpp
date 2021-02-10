@@ -1,3 +1,9 @@
+//
+// The code generator for the SQL classes. Like the model objects, we
+// create both a base class and a concrete subclass. The subclass will
+// be empty, but this is where you could put additional hand-written
+// methods.
+//
 #include <iostream>
 #include <fstream>
 
@@ -19,8 +25,8 @@ using DataType = DataModel::Column::DataType;
 /**
  * Constructor.
  */
-CodeGenerator_DB::CodeGenerator_DB()
-    : CodeGenerator("CodeGenerator_DB")
+CodeGenerator_DB::CodeGenerator_DB(DataModel &m)
+    : CodeGenerator("CodeGenerator_DB", m)
 {
 }
 
@@ -28,7 +34,7 @@ CodeGenerator_DB::CodeGenerator_DB()
  * Generate the code. We create one DB_Foo class for each table in the model.
  */
 void
-CodeGenerator_DB::generate(DataModel &model) {
+CodeGenerator_DB::generate() {
     if (outputFileName.length() == 0) {
         cerr << "CodeGenerator_DB::generate() with no output directory specified." << endl;
         exit(2);
@@ -37,8 +43,14 @@ CodeGenerator_DB::generate(DataModel &model) {
     for (const Table::Pointer & table: model.getTables()) {
         generateH(*table);
         generateCPP(*table);
+        generateConcreteH(*table);
+        generateConcreteCPP(*table);
     }
 }
+
+//======================================================================
+// Methods for creating the base classes in the stub dir.
+//======================================================================
 
 /**
  * Generate the .h file.
@@ -46,8 +58,8 @@ CodeGenerator_DB::generate(DataModel &model) {
 void
 CodeGenerator_DB::generateH(Table &table) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
-    string hName = outputFileName + "/" + myClassName + ".h";
+    string myClassName = string{"DB_"} + baseClassName + "_Base";
+    string hName = cppStubDirName + "/" + myClassName + ".h";
     std::ofstream ofs{hName};
 
     //--------------------------------------------------
@@ -65,7 +77,8 @@ CodeGenerator_DB::generateH(Table &table) {
             ;
 
     //--------------------------------------------------
-    // Opening.
+    // Opening. This defines the beginning of the class
+    // plus a bunch of standard methods.
     //--------------------------------------------------
     ofs << "class " << myClassName << " {" << endl
         << "private:" << endl
@@ -87,6 +100,13 @@ CodeGenerator_DB::generateH(Table &table) {
         << "\tstatic void deleteWithId(pqxx::connection &, int);"  << endl
         << endl
            ;
+
+    //--------------------------------------------------
+    // We also want readers based on having other
+    // tables pointed to us.
+    //--------------------------------------------------
+    generateH_FromForeignKeys(table, ofs, myClassName);
+    generateH_FromMapFiles(table, ofs, myClassName);
 
     //--------------------------------------------------
     // Write a constexpr that holds the list of columns
@@ -121,13 +141,59 @@ CodeGenerator_DB::generateH(Table &table) {
 }
 
 /**
+ * We want "readAll" style methods for any foreign keys we hold. For instance, assume:
+ *
+ * 		Foo.id
+ * 		Bar.fooId -> Foo.id
+ *
+ * We want a readAll_ForFoo(connection, foo.id) to return all Bars that belong to Foo.
+ */
+void
+CodeGenerator_DB::generateH_FromForeignKeys(DataModel::Table &table, std::ostream &ofs, const std::string &) {
+    string baseClassName = table.getName();
+
+    for (const Column::Pointer &column: table.getColumns()) {
+        Column::Pointer fk = column->getReferences();
+        if (fk != nullptr) {
+            std::shared_ptr<Table> refTable = fk->getOurTable().lock();
+            ofs << "\tstatic " << baseClassName << "::Vector readAll_For" << refTable->getName() << "(pqxx::connection &, int);"  << endl;
+        }
+    }
+}
+
+/**
+ * Map tables provide many-to-many relationships. Imagine:
+ *
+ * Foo.id
+ * Bar.id
+ * Foo_Bar.fooId and Foo_Bar.barId
+ *
+ * If we have a Foo, we might want all Bars, which is a join against the Foo_Bar table.
+ *
+ * Map Tables probably have exactly three columns -- the two listed above plus a primary
+ * key. What I'll need to do is see if another table looks like a map table mapped to
+ * this table. If so, then I'll need the reference for the OTHER table (what we're
+ * mapping from) and create a readAll method from that table's PK.
+ */
+void
+CodeGenerator_DB::generateH_FromMapFiles(DataModel::Table &table, std::ostream &ofs, const std::string &myClassName) {
+    string baseClassName = table.getName();
+
+    for (const Table::Pointer &thisTable: model.getTables()) {
+        if (thisTable->looksLikeMapTableFor(table)) {
+            const Column::Pointer otherRef = thisTable->otherMapTableReference(table);
+        }
+    }
+}
+
+/**
  * Generate the .cpp file.
  */
 void
 CodeGenerator_DB::generateCPP(Table &table) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
-    string cName = outputFileName + "/" + myClassName + ".cpp";
+    string myClassName = string{"DB_"} + baseClassName + "_Base";
+    string cName = cppStubDirName + "/" + myClassName + ".cpp";
     std::ofstream ofs{cName};
     const Column::Pointer pk = table.findPrimaryKey();
 
@@ -142,9 +208,9 @@ CodeGenerator_DB::generateCPP(Table &table) {
     //--------------------------------------------------
     // Generate the reader methods.
     //--------------------------------------------------
-    generateCPP_ReadAll(table, ofs);
-    generateCPP_ParseAll(table, ofs);
-    generateCPP_ParseOne(table, ofs);
+    generateCPP_ReadAll(table, ofs, myClassName);
+    generateCPP_ParseAll(table, ofs, myClassName);
+    generateCPP_ParseOne(table, ofs, myClassName);
 
     //--------------------------------------------------
     // Write the add-or-update method.
@@ -165,19 +231,18 @@ CodeGenerator_DB::generateCPP(Table &table) {
     //--------------------------------------------------
     // Write the inserter and updater.
     //--------------------------------------------------
-    generateCPP_DoInsert(table, ofs);
-    generateCPP_DoUpdate(table, ofs);
+    generateCPP_DoInsert(table, ofs, myClassName);
+    generateCPP_DoUpdate(table, ofs, myClassName);
 
-    generateCPP_DeleteWithId(table, ofs);
+    generateCPP_DeleteWithId(table, ofs, myClassName);
 }
 
 /**
  * This generates the readAll method, which does the query and then gets the
  * other methods to parse it.
  */
-void CodeGenerator_DB::generateCPP_ReadAll(DataModel::Table &table, std::ostream &ofs) {
+void CodeGenerator_DB::generateCPP_ReadAll(DataModel::Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
 
@@ -197,9 +262,8 @@ void CodeGenerator_DB::generateCPP_ReadAll(DataModel::Table &table, std::ostream
 /**
  * This parses the results of a query.
  */
-void CodeGenerator_DB::generateCPP_ParseAll(DataModel::Table &table, std::ostream &ofs) {
+void CodeGenerator_DB::generateCPP_ParseAll(DataModel::Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
 
@@ -217,9 +281,8 @@ void CodeGenerator_DB::generateCPP_ParseAll(DataModel::Table &table, std::ostrea
 /**
  * This parses the results of one row.
  */
-void CodeGenerator_DB::generateCPP_ParseOne(DataModel::Table &table, std::ostream &ofs) {
+void CodeGenerator_DB::generateCPP_ParseOne(DataModel::Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
 
@@ -246,9 +309,8 @@ void CodeGenerator_DB::generateCPP_ParseOne(DataModel::Table &table, std::ostrea
 /**
  * This writes the doInsert method.
  */
-void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs) {
+void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
 
@@ -289,9 +351,8 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs) {
  * This writes the doUpdate() method, which is similar to the doInsert() method,
  * but of course, SQL UPDATE statements aren't identical to INSERT statements.
  */
-void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs) {
+void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
 
@@ -329,9 +390,8 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs) {
 /**
  * This writes deleteWithId().
  */
-void CodeGenerator_DB::generateCPP_DeleteWithId(Table &table, std::ostream &ofs) {
+void CodeGenerator_DB::generateCPP_DeleteWithId(Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
-    string myClassName = string{"DB_"} + baseClassName;
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
 
@@ -341,4 +401,52 @@ void CodeGenerator_DB::generateCPP_DeleteWithId(Table &table, std::ostream &ofs)
         << "\twork.commit();" << endl
         << "}" << endl
            ;
+}
+
+//======================================================================
+// Classes for generating the concrete classes, if necessary.
+//======================================================================
+
+/**
+ * Generate the concrete base class.h if it doesn't exist.
+ */
+void CodeGenerator_DB::generateConcreteH(DataModel::Table &table)
+{
+    string myClassName = string{"DB_"} + table.getName();
+    string baseClassName = myClassName + "_Base";
+    string hName = outputFileName + "/" + myClassName + ".h";
+
+    if (!std::filesystem::exists(hName)) {
+        std::ofstream ofs{hName};
+
+        ofs << "#pragma once" << endl
+            << endl
+            << "#include <iostream>" << endl
+            << "#include <string>" << endl
+            << "#include <" << baseClassName << ".h>" << endl
+            << endl
+            << "class " << myClassName << ": public " << baseClassName << " {" << endl
+            << "public:" << endl
+            << "\tvirtual ~" << myClassName << "();" << endl
+            << "};" << endl
+               ;
+    }
+}
+
+/**
+ * Generate the concrete base class.cpp if it doesn't exist.
+ */
+void CodeGenerator_DB::generateConcreteCPP(DataModel::Table &table)
+{
+    string myClassName = string{"DB_"} + table.getName();
+    string cppName = outputFileName + "/" + myClassName + ".cpp";
+
+    if (!std::filesystem::exists(cppName)) {
+        std::ofstream ofs{cppName};
+        ofs << "#include <" << myClassName << ".h>" << endl
+            << endl
+            << myClassName << "::~" << myClassName << "() {" << endl
+            << "}" << endl
+               ;
+    }
 }

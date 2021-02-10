@@ -15,8 +15,8 @@ using DataType = DataModel::Column::DataType;
 /**
  * Constructor.
  */
-CodeGenerator_SQL::CodeGenerator_SQL()
-    : CodeGenerator("CodeGenerator_SQL")
+CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m)
+    : CodeGenerator("CodeGenerator_SQL", m)
 {
 }
 
@@ -24,7 +24,7 @@ CodeGenerator_SQL::CodeGenerator_SQL()
  * Generate our output file.
  */
 void
-CodeGenerator_SQL::generate(DataModel &model) {
+CodeGenerator_SQL::generate() {
     if (outputFileName.length() == 0) {
         cerr << "CodeGenerator_SQL::generate() with no output file specified." << endl;
         exit(2);

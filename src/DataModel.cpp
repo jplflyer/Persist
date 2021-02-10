@@ -492,3 +492,62 @@ DataModel::Table::sortColumns() {
                 ( !second->getIsPrimaryKey() && first->getName() < second->getName() );
         } );
 }
+
+/**
+ * Are we a map table for this other table?
+ */
+bool
+DataModel::Table::looksLikeMapTableFor(const Table &other) const {
+    // We're only a map table if:
+    //		isMap is true
+    //		or our name ends in _Map
+    //		or we have exactly 3 columns, our PK and 2 FKs.
+    bool canBeMap = isMap || endsWith(name, "_Map");
+
+    if (!canBeMap) {
+        if (columns.size() == 3) {
+            canBeMap = true;
+            for (const Column::Pointer &column: columns) {
+                if (!column->getIsPrimaryKey()) {
+                    Column::Pointer ref = column->getReferences();
+                    if (ref == nullptr) {
+                        canBeMap = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (!canBeMap) {
+        return false;
+    }
+
+    // Okay, we're probably a map file, so now see if we have a reference to other.
+    Column::Pointer otherPK = other.findPrimaryKey();
+    for (const Column::Pointer &column: columns) {
+        Column::Pointer ref = column->getReferences();
+        if (ref == otherPK) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * We're a map table. One half of our map is other. We want
+ * the our column that represents the link to the opposite table.
+ */
+const DataModel::Column::Pointer
+DataModel::Table::otherMapTableReference(const Table &other) const {
+    Column::Pointer otherPK = other.findPrimaryKey();
+    for (const Column::Pointer &column: columns) {
+        Column::Pointer ref = column->getReferences();
+        if (ref != nullptr && ref != otherPK) {
+            // this must be it.
+            return column;
+        }
+    }
+    return nullptr;
+}

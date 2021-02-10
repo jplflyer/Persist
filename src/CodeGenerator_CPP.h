@@ -5,9 +5,9 @@
 class CodeGenerator_CPP: public CodeGenerator
 {
 public:
-    CodeGenerator_CPP();
+    CodeGenerator_CPP(DataModel &);
 
-    void generate(DataModel &) override;
+    void generate() override;
 
     std::string cppStubDirName;
     bool wantJSON = true;

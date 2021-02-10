@@ -13,8 +13,8 @@ private:
     void generateIndexes(std::ofstream &, const DataModel::Table &);
 
 public:
-    CodeGenerator_SQL();
+    CodeGenerator_SQL(DataModel &);
 
-    void generate(DataModel &) override;
+    void generate() override;
 };
 

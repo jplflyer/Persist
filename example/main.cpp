@@ -14,7 +14,7 @@ using std::string;
 
 int main(int, char **) {
     try {
-        pqxx::connection c;
+        pqxx::connection c("postgresql://jpl:nicknick@dbserver:5432");
 
         Foo foo;
         foo.setUsername(Faker::Name::name());

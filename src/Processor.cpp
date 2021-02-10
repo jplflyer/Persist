@@ -133,16 +133,17 @@ Processor::writeModel() {
  */
 void
 Processor::generate() {
-    CodeGenerator_SQL sqlGen;
+    CodeGenerator_SQL sqlGen(model);
     sqlGen.outputFileName = sqlFileName;
-    sqlGen.generate(model);
+    sqlGen.generate();
 
-    CodeGenerator_CPP cppGen;
+    CodeGenerator_CPP cppGen(model);
     cppGen.outputFileName = cppDirName;
     cppGen.cppStubDirName = cppStubDirName.length() > 0 ? cppStubDirName : cppDirName;
-    cppGen.generate(model);
+    cppGen.generate();
 
-    CodeGenerator_DB dbGen;
+    CodeGenerator_DB dbGen(model);
     dbGen.outputFileName = cppDirName;
-    dbGen.generate(model);
+    dbGen.cppStubDirName = cppStubDirName.length() > 0 ? cppStubDirName : cppDirName;
+    dbGen.generate();
 }

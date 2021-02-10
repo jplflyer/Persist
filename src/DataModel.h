@@ -192,6 +192,9 @@ public:
         const Column::Vector & getColumns() const { return columns; }
         void sortColumns();
 
+        bool looksLikeMapTableFor(const Table &) const;
+        const Column::Pointer otherMapTableReference(const Table &) const;
+
     private:
         Column::Vector	columns;
 
@@ -200,6 +203,9 @@ public:
 
         /** This is the column name */
         std::string	dbName;
+
+        /** The GUI doesn't know about this yet. */
+        bool isMap = false;
     };
 
     //======================================================================

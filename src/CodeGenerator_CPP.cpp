@@ -17,8 +17,8 @@ using Table = DataModel::Table;
 using Column = DataModel::Column;
 using DataType = DataModel::Column::DataType;
 
-CodeGenerator_CPP::CodeGenerator_CPP()
-    : CodeGenerator("CodeGenerator_CPP")
+CodeGenerator_CPP::CodeGenerator_CPP(DataModel &m)
+    : CodeGenerator("CodeGenerator_CPP", m)
 {
 }
 
@@ -26,7 +26,7 @@ CodeGenerator_CPP::CodeGenerator_CPP()
  * Generate all .cpp and .h files.
  */
 void
-CodeGenerator_CPP::generate(DataModel &model) {
+CodeGenerator_CPP::generate() {
     if (cppStubDirName.length() == 0) {
         cerr << "CodeGenerator_CPP::generate() with no output directory specified." << endl;
         exit(2);
@@ -248,7 +248,7 @@ void CodeGenerator_CPP::generateConcreteH(DataModel::Table &table)
             << endl
             << "class " << name << ": public " << baseClassName << " {" << endl
             << "public:" << endl
-            << "\t~" << name << "();" << endl
+            << "\tvirtual ~" << name << "();" << endl
             << "};" << endl
                ;
     }
