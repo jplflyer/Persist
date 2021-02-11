@@ -551,3 +551,19 @@ DataModel::Table::otherMapTableReference(const Table &other) const {
     }
     return nullptr;
 }
+
+/**
+ * We're a map table to other. Return the column that represents
+ * that half of the link.
+ */
+const DataModel::Column::Pointer
+DataModel::Table::ourMapTableReference(const Table &other) const {
+    Column::Pointer otherPK = other.findPrimaryKey();
+    for (const Column::Pointer &column: columns) {
+        Column::Pointer ref = column->getReferences();
+        if (ref != nullptr && ref == otherPK) {
+            return column;
+        }
+    }
+    return nullptr;
+}

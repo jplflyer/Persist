@@ -34,6 +34,11 @@ private:
     void generateH_FromMapFiles(DataModel::Table &, std::ostream &, const std::string &myClassName);
     void generateCPP_FromMapFiles(DataModel::Table &, std::ostream &, const std::string &myClassName);
 
+    void generateCPP_ThisMap(DataModel::Table &,
+                             std::ostream &,
+                             DataModel::Table &,
+                             const std::string &myClassName);
+
     // This generates subclasses only if they don't already exist.
     void generateConcreteH(DataModel::Table &);
     void generateConcreteCPP(DataModel::Table &);

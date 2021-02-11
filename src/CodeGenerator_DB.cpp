@@ -120,7 +120,6 @@ CodeGenerator_DB::generateH(Table &table) {
         ofs << delim << column->getDbName();
         delim = ", ";
     }
-
     ofs << '"' << " };" << endl;
 
     delim = "";
@@ -131,7 +130,14 @@ CodeGenerator_DB::generateH(Table &table) {
             delim = ", ";
         }
     }
+    ofs << '"' << " };" << endl;
 
+    delim = "";
+    ofs << "\tstatic constexpr char const * QUALIFIED_QUERY_LIST { " << '"';
+    for (const Column::Pointer &column: table.getColumns()) {
+        ofs << delim << table.getDbName() << "." << column->getDbName();
+        delim = ", ";
+    }
     ofs << '"' << " };" << endl;
 
     //--------------------------------------------------
@@ -149,7 +155,7 @@ CodeGenerator_DB::generateH(Table &table) {
  * We want a readAll_ForFoo(connection, foo.id) to return all Bars that belong to Foo.
  */
 void
-CodeGenerator_DB::generateH_FromForeignKeys(DataModel::Table &table, std::ostream &ofs, const std::string &) {
+CodeGenerator_DB::generateH_FromForeignKeys(Table &table, std::ostream &ofs, const std::string &) {
     string baseClassName = table.getName();
 
     for (const Column::Pointer &column: table.getColumns()) {
@@ -176,12 +182,21 @@ CodeGenerator_DB::generateH_FromForeignKeys(DataModel::Table &table, std::ostrea
  * mapping from) and create a readAll method from that table's PK.
  */
 void
-CodeGenerator_DB::generateH_FromMapFiles(DataModel::Table &table, std::ostream &ofs, const std::string &myClassName) {
+CodeGenerator_DB::generateH_FromMapFiles(Table &table, std::ostream &ofs, const std::string &myClassName) {
     string baseClassName = table.getName();
 
     for (const Table::Pointer &thisTable: model.getTables()) {
-        if (thisTable->looksLikeMapTableFor(table)) {
+        if (thisTable->getName() != table.getName() && thisTable->looksLikeMapTableFor(table)) {
             const Column::Pointer otherRef = thisTable->otherMapTableReference(table);
+            if (otherRef == nullptr) {
+                continue;
+            }
+
+            // We're just writing the signature:
+            //    vec readAll_FromMap_<MapTable>(pqxx::connection &, int otherId)
+            ofs << "\tstatic " << baseClassName << "::Vector readAll_FromMap_"
+                << thisTable->getName() << "(pqxx::connection &, int "
+                << otherRef->getName() << ");"  << endl;
         }
     }
 }
@@ -212,6 +227,9 @@ CodeGenerator_DB::generateCPP(Table &table) {
     generateCPP_ParseAll(table, ofs, myClassName);
     generateCPP_ParseOne(table, ofs, myClassName);
 
+    generateCPP_FromForeignKeys(table, ofs, myClassName);
+    generateCPP_FromMapFiles(table, ofs, myClassName);
+
     //--------------------------------------------------
     // Write the add-or-update method.
     //--------------------------------------------------
@@ -241,7 +259,7 @@ CodeGenerator_DB::generateCPP(Table &table) {
  * This generates the readAll method, which does the query and then gets the
  * other methods to parse it.
  */
-void CodeGenerator_DB::generateCPP_ReadAll(DataModel::Table &table, std::ostream &ofs, const string &myClassName) {
+void CodeGenerator_DB::generateCPP_ReadAll(Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
@@ -262,7 +280,7 @@ void CodeGenerator_DB::generateCPP_ReadAll(DataModel::Table &table, std::ostream
 /**
  * This parses the results of a query.
  */
-void CodeGenerator_DB::generateCPP_ParseAll(DataModel::Table &table, std::ostream &ofs, const string &myClassName) {
+void CodeGenerator_DB::generateCPP_ParseAll(Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
@@ -281,7 +299,7 @@ void CodeGenerator_DB::generateCPP_ParseAll(DataModel::Table &table, std::ostrea
 /**
  * This parses the results of one row.
  */
-void CodeGenerator_DB::generateCPP_ParseOne(DataModel::Table &table, std::ostream &ofs, const string &myClassName) {
+void CodeGenerator_DB::generateCPP_ParseOne(Table &table, std::ostream &ofs, const string &myClassName) {
     string baseClassName = table.getName();
     const Column::Pointer pk = table.findPrimaryKey();
     string pkGetter { string{"get"} + firstUpper(pk->getName()) + "()"};
@@ -304,6 +322,89 @@ void CodeGenerator_DB::generateCPP_ParseOne(DataModel::Table &table, std::ostrea
         << "}" << endl
         << endl
        ;
+}
+
+/**
+ * This generates any readers based on having FK relationships.
+ */
+void
+CodeGenerator_DB::generateCPP_FromForeignKeys(Table &table, std::ostream &ofs, const string &myClassName) {
+    string baseClassName = table.getName();
+
+    for (const Column::Pointer &column: table.getColumns()) {
+        Column::Pointer fk = column->getReferences();
+        if (fk != nullptr) {
+            std::shared_ptr<Table> refTable = fk->getOurTable().lock();
+            ofs << baseClassName << "::Vector " << myClassName << "::readAll_For" << refTable->getName()
+                << "(pqxx::connection &conn, int " << column->getName() << ") {"  << endl
+                << "\tpqxx::work work(conn);" << endl
+                << "\tpqxx::result results = work.exec( string{\"SELECT \"} + QUERY_LIST + \" FROM " << table.getDbName()
+                << " WHERE " << column->getDbName() << " = \" + std::to_string(" << column->getName() << "));" << endl
+                << "\twork.commit();" << endl
+                << "\t" << baseClassName << "::Vector vec = parseAll(results);" << endl
+                << "\treturn vec;" << endl
+               ;
+            ofs << "}" << endl << endl;
+        }
+    }
+}
+
+/**
+ * This generates readers based on map tables, which
+ * a join, and is complicated to write, even though the SQL
+ * really is pretty trivial.
+ */
+void
+CodeGenerator_DB::generateCPP_FromMapFiles(Table &table, std::ostream &ofs, const string &myClassName) {
+    for (const Table::Pointer &thisTable: model.getTables()) {
+        if (thisTable->getName() != table.getName() && thisTable->looksLikeMapTableFor(table)) {
+            const Column::Pointer otherRef = thisTable->otherMapTableReference(table);
+            if (otherRef == nullptr) {
+                continue;
+            }
+            generateCPP_ThisMap(table, ofs, *thisTable, myClassName);
+        }
+    }
+}
+
+/**
+ * Generates a join.
+ *
+ *    SELECT foo.* FROM foo, bar WHERE foo.id = bar.foo_id AND bar.gleep_id = 10
+ */
+void
+CodeGenerator_DB::generateCPP_ThisMap(
+    Table &table,			// The table we're returning
+    std::ostream &ofs,					// Output stream
+    Table &mapTable,			// The mapping table
+    const std::string &myClassName)
+{
+    string baseClassName = table.getName();
+    Column::Pointer colToUs = mapTable.ourMapTableReference(table);
+    Column::Pointer ourKeyColumn = colToUs->getReferences();
+
+    Column::Pointer colToThem = mapTable.otherMapTableReference(table);
+
+    ofs << baseClassName << "::Vector " << myClassName << "::readAll_FromMap_"
+        << mapTable.getName() << "(pqxx::connection &conn, int " << colToThem->getName() << ") {"  << endl
+        << "\tpqxx::work work(conn);" << endl
+        << "\tpqxx::result results = work.exec( string{\"SELECT \"} + QUALIFIED_QUERY_LIST + \" FROM "
+        << table.getDbName() << ", " << mapTable.getDbName()
+
+        // This is the join to us
+        << " WHERE " << table.getDbName() << "." << ourKeyColumn->getDbName() << " = "
+        << mapTable.getDbName() << "." << colToUs->getDbName()
+
+        // And this is the join from the distant table, which is from the method's argument list
+        << " AND " << mapTable.getDbName() << "." << colToThem->getDbName() << " = "
+        << "\" + std::to_string(" << colToThem->getName() << "));" << endl
+
+        << "\twork.commit();" << endl
+        << "\t" << baseClassName << "::Vector vec = parseAll(results);" << endl
+        << "\treturn vec;" << endl
+       ;
+    ofs << "}" << endl << endl;
+;
 }
 
 /**
@@ -410,7 +511,7 @@ void CodeGenerator_DB::generateCPP_DeleteWithId(Table &table, std::ostream &ofs,
 /**
  * Generate the concrete base class.h if it doesn't exist.
  */
-void CodeGenerator_DB::generateConcreteH(DataModel::Table &table)
+void CodeGenerator_DB::generateConcreteH(Table &table)
 {
     string myClassName = string{"DB_"} + table.getName();
     string baseClassName = myClassName + "_Base";
@@ -436,7 +537,7 @@ void CodeGenerator_DB::generateConcreteH(DataModel::Table &table)
 /**
  * Generate the concrete base class.cpp if it doesn't exist.
  */
-void CodeGenerator_DB::generateConcreteCPP(DataModel::Table &table)
+void CodeGenerator_DB::generateConcreteCPP(Table &table)
 {
     string myClassName = string{"DB_"} + table.getName();
     string cppName = outputFileName + "/" + myClassName + ".cpp";

@@ -194,6 +194,7 @@ public:
 
         bool looksLikeMapTableFor(const Table &) const;
         const Column::Pointer otherMapTableReference(const Table &) const;
+        const Column::Pointer ourMapTableReference(const Table &) const;
 
     private:
         Column::Vector	columns;
