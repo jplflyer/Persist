@@ -32,12 +32,31 @@ CodeGenerator_CPP::generate() {
         exit(2);
     }
 
+    generateIncludes();
+
     for (const Table::Pointer & table: model.getTables()) {
         generateH(*table);
         generateCPP(*table);
 
         generateConcreteH(*table);
         generateConcreteCPP(*table);
+    }
+}
+
+/**
+ * This creates two big Includes, one for the objects, one for the DB helpers.
+ */
+void
+CodeGenerator_CPP::generateIncludes() {
+    string hName = outputFileName + "/" + model.getName() + ".h";
+    string dbhName = outputFileName + "/DB_" + model.getName() + ".h";
+
+    std::ofstream hOutput{hName};
+    std::ofstream dbOutput{hName};
+
+    for (const Table::Pointer &table: model.getTables()) {
+        hOutput << "#include <" << table->getName() << ".h>" << endl;
+        dbOutput << "#include <DB_" << table->getName() << ".h>" << endl;
     }
 }
 
@@ -106,8 +125,14 @@ CodeGenerator_CPP::generateH(Table &table) {
         << "public:" << endl
         << "    typedef std::shared_ptr<" << name << "> Pointer;" << endl
         << "    typedef std::weak_ptr<" << name << "> WPointer;" << endl
-        << "    typedef std::vector<Pointer> Vector;" << endl
-        << endl
+        << "    typedef ShowLib::JSONSerializableVector<" << name << "> Vector;" << endl
+        << endl;
+
+    //--------------------------------------------------
+    // Constructors and destructor
+    //--------------------------------------------------
+    ofs << "    " << myClassName << "() = default;" << endl
+        << "    " << myClassName << "(const JSON &json) { fromJSON(json); }" << endl
         << "	virtual ~" << myClassName << "();" << endl
            ;
 

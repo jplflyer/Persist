@@ -217,6 +217,9 @@ public:
     void fromJSON(const JSON &) override;
     JSON & toJSON(JSON &) const override;
 
+    const std::string & getName() const { return name; }
+    void setName(const std::string &value) { name = value; markDirty(); }
+
     Table::Pointer createTable(const std::string &tableName);
     const Table::Pointer findTable(const std::string &tableName) const;
     void sortTables();
@@ -233,6 +236,7 @@ public:
     void markClean() { isDirty = false; }
 
 private:
+    std::string name;
     Table::Vector tables;
     bool isDirty = false;
 };

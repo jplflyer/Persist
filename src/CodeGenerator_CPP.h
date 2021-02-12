@@ -13,6 +13,8 @@ public:
     bool wantJSON = true;
 
 private:
+    void generateIncludes();
+
     // This generates the base classes
     void generateH(DataModel::Table &);
     void generateCPP(DataModel::Table &);

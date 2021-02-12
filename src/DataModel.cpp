@@ -42,6 +42,7 @@ DataModel::deepEquals(const DataModel &orig) const {
  */
 void
 DataModel::fromJSON(const JSON &json)  {
+    name = stringValue(json, "name");
     tables.fromJSON(jsonArray(json, "tables"));
 }
 
@@ -51,6 +52,7 @@ DataModel::fromJSON(const JSON &json)  {
 JSON &
 DataModel::toJSON(JSON &json) const {
     JSON tablesJSON{JSON::array()};
+    json["name"] = name;
     json["tables"] = tables.toJSON(tablesJSON);
     return json;
 }

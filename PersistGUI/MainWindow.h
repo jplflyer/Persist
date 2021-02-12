@@ -31,6 +31,8 @@ private slots:
     void on_newTablePB_clicked();
     void tableChanged(DataModel::Table::Pointer);
 
+    void on_nameTF_textChanged(const QString &arg1);
+
 private:
     Ui::MainWindow *ui;
     QMenu * recentFilesMenu = nullptr;

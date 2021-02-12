@@ -60,10 +60,8 @@ MainWindow::fixRecents() {
     const StringVector & recents = Configuration::singleton().getRecents();
     size_t countRecents = recents.size();
     size_t countActions = recentFileActions.size();
-    cout << "Number of recents: " << countRecents << endl;
 
     for (size_t index = 0; index < countRecents; ++index) {
-        cout << "Recent at " << index << " == " << *recents.at(index) << endl;
         QAction * thisAction = (index < countActions) ? recentFileActions.at(index) : nullptr;
         if (thisAction == nullptr) {
             thisAction = new QAction(this);
@@ -115,6 +113,8 @@ void MainWindow::load(const std::string fileName) {
             model.fixReferences();
             model.sortTables();
             model.sortAllColumns();
+
+            ui->nameTF->setText(QString::fromStdString(model.getName()));
 
             Configuration::singleton().pushRecent(fileName).save();
             fixRecents();
@@ -255,4 +255,12 @@ void MainWindow::on_newTablePB_clicked()
 
     connect(newForm, &TableForm::tableChanged, this, &MainWindow::tableChanged);
     newForm->show();
+}
+
+void MainWindow::on_nameTF_textChanged(const QString &)
+{
+    string name = ui->nameTF->text().toStdString();
+    if (name.length() > 0 && model.getName() != name) {
+        model.setName(name);
+    }
 }
