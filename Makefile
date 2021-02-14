@@ -71,10 +71,13 @@ install: /usr/local/bin/DataModeler
 # Tests
 #======================================================================
 
-tests: ${TEST_BIN} ${TEST_BIN}/TestDataModel
+tests: ${TEST_BIN} ${TEST_BIN}/TestDataModel ${TEST_BIN}/TestDatabase
 
 ${TEST_BIN}:
 	mkdir -p ${TEST_BIN}
 
 ${TEST_BIN}/TestDataModel: ${OBJDIR}/TestDataModel.o ${OBJDIR}/main-test.o ${OBJS_NOMAIN}
 	$(CXX) ${OBJDIR}/TestDataModel.o ${OBJDIR}/main-test.o ${OBJS_NOMAIN} -lshow${MACAPPEND} ${LDFLAGS} $(OUTPUT_OPTION)
+
+${TEST_BIN}/TestDatabase: ${OBJDIR}/TestDatabase.o ${OBJDIR}/main-test.o ${OBJS_NOMAIN}
+	$(CXX) ${OBJDIR}/TestDatabase.o ${OBJDIR}/main-test.o ${OBJS_NOMAIN} -lshow${MACAPPEND} -lpqxx -lpq ${LDFLAGS} $(OUTPUT_OPTION)

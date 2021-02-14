@@ -23,6 +23,7 @@ SOURCES += \
     src/Processor.cpp \
     src/main.cpp \
     tests/TestDataModel.cpp \
+    tests/TestDatabase.cpp \
     tests/main-test.cpp
 
 HEADERS += \
@@ -37,5 +38,6 @@ HEADERS += \
     src/DataModel.h \
     src/Processor.h \
     tests/TestDataModel.h \
+    tests/TestDatabase.h \
     tests/UnitTesting.h \
     tests/main-test.h

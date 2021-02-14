@@ -148,11 +148,17 @@ DataModel::sortAllColumns() {
 
 class DataTypeInfo {
 public:
+    DataTypeInfo() = default;
+    DataTypeInfo(string _name, DataType _dt, string _cType): name(_name), dataType(_dt), cType(_cType) {}
+
     string name;
     DataType dataType;
     bool hasLength = false;
     bool hasPrecision = false;
     bool isSerial = false;
+    bool isString = false;
+    bool isDate = false;
+    bool isTimestamp = false;
     string lowerName;
     string cType;
 };
@@ -161,6 +167,37 @@ public:
 static std::map<std::string, DataTypeInfo> * stringToDataTypeMap = nullptr;
 static std::map<DataModel::Column::DataType, DataTypeInfo> * dataTypesMap = nullptr;
 static std::vector<std::pair<std::string, DataType>> * dataTypeVector = nullptr;
+
+static DataTypeInfo serialType(string name, DataType dt, string cType) {
+    DataTypeInfo retVal{name, dt, cType};
+    retVal.isSerial = true;
+    return retVal;
+}
+
+static DataTypeInfo precisionType(string name, DataType dt, string cType) {
+    DataTypeInfo retVal{name, dt, cType};
+    retVal.hasPrecision = true;
+    return retVal;
+}
+
+static DataTypeInfo stringType(string name, DataType dt, bool hasLength) {
+    DataTypeInfo retVal{name, dt, "string"};
+    retVal.hasLength = hasLength;
+    retVal.isString = true;
+    return retVal;
+}
+
+static DataTypeInfo dateType(string name, DataType dt) {
+    DataTypeInfo retVal{name, dt, "string"};
+    retVal.isDate = true;
+    return retVal;
+}
+
+static DataTypeInfo timeType(string name, DataType dt) {
+    DataTypeInfo retVal{name, dt, "string"};
+    retVal.isTimestamp = true;
+    return retVal;
+}
 
 static void populateMaps() {
     static std::mutex mapMutex;
@@ -173,27 +210,30 @@ static void populateMaps() {
         std::vector<DataTypeInfo> vec;
 
         // TODO: Some of these are wrong.
-        vec.push_back( {"BigInt", DataModel::Column::DataType::BigInt, false, false, false, "", "long"} );
-        vec.push_back( {"BigSerial", DataModel::Column::DataType::BigSerial, false, false, true, "", "long"} );
-        vec.push_back( {"Bit", DataModel::Column::DataType::Bit, false, false, false, "", "short"} );
-        vec.push_back( {"VarBit", DataModel::Column::DataType::VarBit, false, false, false, "", "short"} );
-        vec.push_back( {"SmallInt", DataModel::Column::DataType::SmallInt, false, false, false, "", "short"} );
-        vec.push_back( {"Serial", DataModel::Column::DataType::Serial, false, false, true, "", "int"} );
-        vec.push_back( {"Boolean", DataModel::Column::DataType::Boolean, false, false, false, "", "bool"} );
-        vec.push_back( {"Double", DataModel::Column::DataType::Double, false, false, false, "", "double"} );
-        vec.push_back( {"Integer", DataModel::Column::DataType::Integer, false, false, false, "", "int"} );
-        vec.push_back( {"Real", DataModel::Column::DataType::Real, false, false, false, "", "double"} );
-        vec.push_back( {"Numeric", DataModel::Column::DataType::Numeric, false, true, false, "", "double"} );
-        vec.push_back( {"ByteArray", DataModel::Column::DataType::ByteArray, true, false, false, "", "string"} );
-        vec.push_back( {"Character", DataModel::Column::DataType::Character, true, false, false, "", "string"} );
-        vec.push_back( {"VarChar", DataModel::Column::DataType::VarChar, true, false, false, "", "string"} );
-        vec.push_back( {"Text", DataModel::Column::DataType::Text, false, false, false, "", "string"} );
-        vec.push_back( {"Interval", DataModel::Column::DataType::Interval, false, false, false, "", "string"} );
-        vec.push_back( {"Date", DataModel::Column::DataType::Date, false, false, false, "", "string"} );
-        vec.push_back( {"Time", DataModel::Column::DataType::Time, false, false, false, "", "string"} );
-        vec.push_back( {"TimeTZ", DataModel::Column::DataType::TimeTZ, false, false, false, "", "string"} );
-        vec.push_back( {"Timestamp", DataModel::Column::DataType::Timestamp, false, false, false, "", "string"} );
-        vec.push_back( {"TimestampTZ", DataModel::Column::DataType::TimestampTZ, false, false, false, "", "string"} );
+        vec.push_back( {"BigInt", DataType::BigInt, "long"} );
+        vec.push_back( serialType("BigSerial", DataType::BigSerial, "long") );
+        vec.push_back( {"Bit", DataType::Bit, "short"} );
+        vec.push_back( {"VarBit", DataType::VarBit, "short"} );
+        vec.push_back( {"SmallInt", DataType::SmallInt, "short"} );
+        vec.push_back( serialType("Serial", DataType::Serial, "int") );
+        vec.push_back( {"Boolean", DataType::Boolean, "bool"} );
+        vec.push_back( {"Double", DataType::Double, "double"} );
+        vec.push_back( {"Integer", DataType::Integer, "int"} );
+        vec.push_back( {"Real", DataType::Real, "double"} );
+        vec.push_back( precisionType("Numeric", DataType::Numeric, "double") );
+
+        vec.push_back( stringType("ByteArray", DataType::ByteArray, true) );
+        vec.push_back( stringType("Character", DataType::Character, true) );
+        vec.push_back( stringType("VarChar", DataType::VarChar, true) );
+        vec.push_back( stringType("Text", DataType::Text, false) );
+
+        vec.push_back( {"Interval", DataType::Interval, "string"} );
+
+        vec.push_back( dateType("Date", DataType::Date) );
+        vec.push_back( timeType("Time", DataType::Time) );
+        vec.push_back( timeType("TimeTZ", DataType::TimeTZ) );
+        vec.push_back( timeType("Timestamp", DataType::Timestamp) );
+        vec.push_back( timeType("TimestampTZ", DataType::TimestampTZ) );
 
         for (DataTypeInfo &info: vec) {
             info.lowerName = toLower(info.name);
@@ -456,6 +496,18 @@ DataModel::Table::toJSON(JSON &json) const {
     json["dbName"] = dbName;
     json["columns"] = columns.toJSON(colsJSON);
     return json;
+}
+
+bool DataModel::Column::isString() const {
+    return dataTypesMap->at(dataType).isString;
+}
+
+bool DataModel::Column::isDate() const {
+    return dataTypesMap->at(dataType).isDate;
+}
+
+bool DataModel::Column::isTimestamp() const {
+    return dataTypesMap->at(dataType).isTimestamp;
 }
 
 /**

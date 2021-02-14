@@ -312,9 +312,17 @@ void CodeGenerator_DB::generateCPP_ParseOne(Table &table, std::ostream &ofs, con
     for (const Column::Pointer &column: table.getColumns()) {
         string cType = cTypeFor(column->getDataType());
 
-        ofs << "\tptr->set" << firstUpper(column->getName())
-            << "( row[" << index++ << "].as<" << cType << ">());" << endl;
-           ;
+        if (column->isString() || column->isDate() || column->isTimestamp()) {
+            ofs << "\tptr->set" << firstUpper(column->getName())
+                << "( row[" << index << "].is_null() ? \"\" : row[" << index << "].as<" << cType << ">());" << endl;
+               ;
+        }
+        else {
+            ofs << "\tptr->set" << firstUpper(column->getName())
+                << "( row[" << index << "].as<" << cType << ">());" << endl;
+               ;
+        }
+        ++index;
     }
 
     ofs
@@ -434,11 +442,7 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, con
     ofs << ") RETURNING " << pk->getDbName() << "\" };" << endl
         << "\tpqxx::result results = work.exec_params(sql";
 
-    for (const Column::Pointer &column: table.getColumns()) {
-        if (!column->getIsPrimaryKey()) {
-            //ofs << ", obj.get" << firstUpper(column->getName()) << "()";
-        }
-    }
+    generateCPP_FieldArguments(table, ofs);
 
     ofs << ");" << endl
         << "\twork.commit();" << endl
@@ -446,6 +450,26 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, con
         << "}" << endl
         << endl
            ;
+}
+
+/**
+ * This is used to do the latter part of work.exec_params().
+ */
+void
+CodeGenerator_DB::generateCPP_FieldArguments(DataModel::Table &table, std::ostream &ofs) {
+    for (const Column::Pointer &column: table.getColumns()) {
+        if (!column->getIsPrimaryKey()) {
+            string getterStr = string{"obj.get"} + firstUpper(column->getName()) + "()";
+            if (column->isString() || column->isDate() || column->isTimestamp()) {
+                ofs << ",\n\t\t" << getterStr << ".length() > 0" << " ? "
+                    << getterStr << ".c_str() : nullptr"
+                    ;
+            }
+            else {
+                ofs << ",\n\t\t" << getterStr;
+            }
+        }
+    }
 }
 
 /**
@@ -475,11 +499,7 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs, con
         << "\tpqxx::result results = work.exec_params(sql, obj." << pkGetter
            ;
 
-    for (const Column::Pointer &column: table.getColumns()) {
-        if (!column->getIsPrimaryKey()) {
-            ofs << ", obj.get" << firstUpper(column->getName()) << "()";
-        }
-    }
+    generateCPP_FieldArguments(table, ofs);
 
     ofs << ");" << endl
         << "\twork.commit();" << endl

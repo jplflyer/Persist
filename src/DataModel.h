@@ -108,6 +108,10 @@ public:
         bool getWantIndex() const { return wantIndex; }
         bool getWantFinder() const { return wantFinder; }
 
+        bool isString() const;
+        bool isDate() const;
+        bool isTimestamp() const;
+
         Pointer getReferences() const { return references; }
 
         Column & setName(const std::string &value) { name = value; return *this; }

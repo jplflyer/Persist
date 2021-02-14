@@ -29,6 +29,8 @@ private:
     void generateCPP_DoUpdate(DataModel::Table &, std::ostream &, const std::string &myClassName);
     void generateCPP_DeleteWithId(DataModel::Table &, std::ostream &, const std::string &myClassName);
 
+    void generateCPP_FieldArguments(DataModel::Table &, std::ostream &);
+
     void generateH_FromForeignKeys(DataModel::Table &, std::ostream &, const std::string &myClassName);
     void generateCPP_FromForeignKeys(DataModel::Table &, std::ostream &, const std::string &myClassName);
     void generateH_FromMapFiles(DataModel::Table &, std::ostream &, const std::string &myClassName);
