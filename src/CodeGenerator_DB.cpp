@@ -267,7 +267,7 @@ void CodeGenerator_DB::generateCPP_ReadAll(Table &table, std::ostream &ofs, cons
     ofs << baseClassName << "::Vector " << myClassName << "::readAll(pqxx::connection &conn, std::string whereClause) {" << endl
         << "\tpqxx::work work(conn);" << endl
         << "\tpqxx::result results = work.exec( string{\"SELECT \"} + QUERY_LIST + \" FROM " << table.getDbName()
-            << '"' << " + (whereClause.length() > 0 ? ( string{\"WHERE \"} + whereClause ): \"\""
+            << '"' << " + (whereClause.length() > 0 ? ( string{\" WHERE \"} + whereClause ): \"\""
             << "));" << endl
         << "\twork.commit();" << endl
         << "\t" << baseClassName << "::Vector vec = parseAll(results);" << endl
@@ -436,7 +436,7 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, con
 
     for (const Column::Pointer &column: table.getColumns()) {
         if (!column->getIsPrimaryKey()) {
-            ofs << ", obj.get" << firstUpper(column->getName()) << "()";
+            //ofs << ", obj.get" << firstUpper(column->getName()) << "()";
         }
     }
 

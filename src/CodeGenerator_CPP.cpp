@@ -52,7 +52,7 @@ CodeGenerator_CPP::generateIncludes() {
     string dbhName = outputFileName + "/DB_" + model.getName() + ".h";
 
     std::ofstream hOutput{hName};
-    std::ofstream dbOutput{hName};
+    std::ofstream dbOutput{dbhName};
 
     for (const Table::Pointer &table: model.getTables()) {
         hOutput << "#include <" << table->getName() << ".h>" << endl;
@@ -195,7 +195,26 @@ CodeGenerator_CPP::generateH(Table &table) {
     //--------------------------------------------------
     // And close it out.
     //--------------------------------------------------
-    ofs << "};" << endl;
+    ofs << "};" << endl << endl;
+
+    //--------------------------------------------------
+    // Finders.
+    //--------------------------------------------------
+    for (const Column::Pointer &col: table.getColumns()) {
+        if (!col->getWantFinder()) {
+            continue;
+        }
+
+        string colUpper = firstUpper(col->getName());
+        string dataType = cTypeFor(col->getDataType());
+        if (dataType == "string") {
+            dataType = "std::string";
+        }
+
+        ofs << myClassName << "::Pointer find_By" << colUpper
+            << "(" << myClassName << "::Vector & vec, const " << dataType << " & value);" << endl;
+    }
+
 }
 
 /**
@@ -211,6 +230,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
     ofs << "#include <iostream>" << endl
         << endl
         << "#include \"" << myClassName << ".h\"" << endl
+        << "#include \"" << name << ".h\"" << endl
         << endl
         << "using std::string;" << endl
         << endl
@@ -251,6 +271,24 @@ CodeGenerator_CPP::generateCPP(Table &table) {
 
     ofs << "    return json; " << endl
         << "}" << endl << endl;
+
+    //======================================================================
+    // Any finders.
+    //======================================================================
+    for (const Column::Pointer &col: table.getColumns()) {
+        if (!col->getWantFinder()) {
+            continue;
+        }
+
+        string colUpper = firstUpper(col->getName());
+        ofs << myClassName << "::Pointer find_By" << colUpper
+            << "(" << myClassName << "::Vector & vec, const " << cTypeFor(col->getDataType())
+                << " & value) {" << endl
+            << "    return vec.findIf([=](const " << name
+                << "::Pointer &ptr){ return ptr->get" << colUpper << "() == value; });" << endl
+            << "}" << endl;
+       ;
+    }
 }
 
 /**
@@ -273,9 +311,17 @@ void CodeGenerator_CPP::generateConcreteH(DataModel::Table &table)
             << endl
             << "class " << name << ": public " << baseClassName << " {" << endl
             << "public:" << endl
+            << "\t" << name << "() = default;" << endl
+            << "\t" << name << "(const JSON &json) : " << baseClassName << "(json) {};" << endl
             << "\tvirtual ~" << name << "();" << endl
-            << "};" << endl
-               ;
+            << endl;
+
+
+
+        //--------------------------------------------------
+        // Close it out
+        //--------------------------------------------------
+        ofs << "};" << endl;
     }
 
 }

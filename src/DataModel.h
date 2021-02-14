@@ -106,6 +106,7 @@ public:
         bool getNullable() const { return nullable; }
         bool getIsPrimaryKey() const { return isPrimaryKey; }
         bool getWantIndex() const { return wantIndex; }
+        bool getWantFinder() const { return wantFinder; }
 
         Pointer getReferences() const { return references; }
 
@@ -124,6 +125,7 @@ public:
         Column & setNullable(bool value) { nullable = value; return *this; }
         Column & setIsPrimaryKey(bool value) { isPrimaryKey = value; return *this; }
         Column & setWantIndex(bool value) { wantIndex = value; return *this; }
+        Column & setWantFinder(bool value) { wantFinder = value; return *this; }
 
         Column & setReferences(Pointer value) { references = value; return *this; }
 
@@ -158,6 +160,7 @@ public:
         bool nullable = true;
         bool isPrimaryKey = false;
         bool wantIndex = false;
+        bool wantFinder = false;
 
         /** If this is a foreign key. */
         Pointer		references = nullptr;

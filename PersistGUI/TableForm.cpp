@@ -20,7 +20,7 @@ static const int COL_DATATYPE = 2;
 static const int COL_PRECISION = 3;
 static const int COL_FLAGS = 4;
 static const int COL_REFERENCES = 5;
-static const int COL_ACTIONS = 6;
+//static const int COL_ACTIONS = 6;
 
 /**
  * Constructor.
@@ -117,6 +117,7 @@ void TableForm::on_columnsTable_cellDoubleClicked(int row, int ) {
     ui->primaryKeyCB->setChecked(selectedColumn->getIsPrimaryKey());
     ui->nullableCB->setChecked(selectedColumn->getNullable());
     ui->indexCB->setChecked(selectedColumn->getWantIndex());
+    ui->finderCB->setChecked(selectedColumn->getWantFinder());
     ui->foreignKeyCB->setChecked(wantReferences);
 
     std::vector<DataTypePair> & dataTypes = allDataTypes();
@@ -247,6 +248,15 @@ void TableForm::on_indexCB_stateChanged(int)
 {
     if (selectedColumn != nullptr) {
         selectedColumn->setWantIndex(ui->indexCB->isChecked());
+        displayColumn(selectedColumnIndex, *selectedColumn);
+        model.markDirty();
+    }
+}
+
+void TableForm::on_finderCB_stateChanged(int)
+{
+    if (selectedColumn != nullptr) {
+        selectedColumn->setWantFinder(ui->finderCB->isChecked());
         displayColumn(selectedColumnIndex, *selectedColumn);
         model.markDirty();
     }

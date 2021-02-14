@@ -47,6 +47,8 @@ private slots:
     void on_referenceTableCB_currentIndexChanged(int index);
     void on_referenceColumnCB_currentIndexChanged(int index);
 
+    void on_finderCB_stateChanged(int arg1);
+
 private:
     Ui::TableForm *ui;
 

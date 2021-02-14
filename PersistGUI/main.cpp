@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[])
 {
-    Configuration & config = Configuration::singleton();
+    Configuration::singleton();
 
     QApplication a(argc, argv);
     MainWindow w;

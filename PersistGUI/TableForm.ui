@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>821</width>
-    <height>632</height>
+    <width>831</width>
+    <height>640</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -169,6 +169,13 @@
              <widget class="QCheckBox" name="foreignKeyCB">
               <property name="text">
                <string>Foreign Key</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="finderCB">
+              <property name="text">
+               <string>Finder</string>
               </property>
              </widget>
             </item>

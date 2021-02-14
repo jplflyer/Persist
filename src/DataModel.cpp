@@ -278,7 +278,7 @@ DataModel::Column::~Column() {
 }
 
 /**
- * Perform a deep copy.
+ * Is these objects identical?
  */
 bool
 DataModel::Column::deepEquals(const DataModel::Column &orig) const {
@@ -291,6 +291,7 @@ DataModel::Column::deepEquals(const DataModel::Column &orig) const {
         && nullable == orig.nullable
         && isPrimaryKey == orig.isPrimaryKey
         && wantIndex == orig.wantIndex
+        && wantFinder == orig.wantFinder
         );
 }
 
@@ -311,6 +312,7 @@ DataModel::Column::fromJSON(const JSON &json) {
     nullable = boolValue(json, "nullable");
     isPrimaryKey = boolValue(json, "isPrimaryKey");
     wantIndex = boolValue(json, "wantIndex");
+    wantFinder = boolValue(json, "wantFinder");
 }
 
 /**
@@ -337,6 +339,9 @@ DataModel::Column::toJSON(JSON &json) const {
     json["isPrimaryKey"] = isPrimaryKey;
     if (wantIndex) {
         json["wantIndex"] = wantIndex;
+    }
+    if (wantFinder) {
+        json["wantFinder"] = wantFinder;
     }
 
     return json;
