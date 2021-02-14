@@ -111,6 +111,7 @@ public:
         bool isString() const;
         bool isDate() const;
         bool isTimestamp() const;
+        bool isForeignKey() const { return references != nullptr; }
 
         Pointer getReferences() const { return references; }
 

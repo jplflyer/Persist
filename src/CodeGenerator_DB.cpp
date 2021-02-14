@@ -311,17 +311,19 @@ void CodeGenerator_DB::generateCPP_ParseOne(Table &table, std::ostream &ofs, con
     int index = 0;
     for (const Column::Pointer &column: table.getColumns()) {
         string cType = cTypeFor(column->getDataType());
+        string stringForNull;
 
-        if (column->isString() || column->isDate() || column->isTimestamp()) {
-            ofs << "\tptr->set" << firstUpper(column->getName())
-                << "( row[" << index << "].is_null() ? \"\" : row[" << index << "].as<" << cType << ">());" << endl;
-               ;
+        if (cType == "string") {
+            stringForNull = "\"\"";
         }
         else {
-            ofs << "\tptr->set" << firstUpper(column->getName())
-                << "( row[" << index << "].as<" << cType << ">());" << endl;
-               ;
+            stringForNull = "0";
         }
+
+        ofs << "\tptr->set" << firstUpper(column->getName())
+            << "( row[" << index << "].is_null() ? " << stringForNull << " : row[" << index << "].as<" << cType << ">() );" << endl;
+               ;
+
         ++index;
     }
 
@@ -412,7 +414,6 @@ CodeGenerator_DB::generateCPP_ThisMap(
         << "\treturn vec;" << endl
        ;
     ofs << "}" << endl << endl;
-;
 }
 
 /**
@@ -430,14 +431,7 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, con
             << " VALUES ("
                ;
 
-    string delim {""};
-    int index = 1;
-    for (const Column::Pointer &column: table.getColumns()) {
-        if (!column->getIsPrimaryKey()) {
-            ofs << delim << "$" << index++;
-            delim = ", ";
-        }
-    }
+    generateCPP_ParameterList(table, ofs, 1);
 
     ofs << ") RETURNING " << pk->getDbName() << "\" };" << endl
         << "\tpqxx::result results = work.exec_params(sql";
@@ -452,25 +446,6 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, con
            ;
 }
 
-/**
- * This is used to do the latter part of work.exec_params().
- */
-void
-CodeGenerator_DB::generateCPP_FieldArguments(DataModel::Table &table, std::ostream &ofs) {
-    for (const Column::Pointer &column: table.getColumns()) {
-        if (!column->getIsPrimaryKey()) {
-            string getterStr = string{"obj.get"} + firstUpper(column->getName()) + "()";
-            if (column->isString() || column->isDate() || column->isTimestamp()) {
-                ofs << ",\n\t\t" << getterStr << ".length() > 0" << " ? "
-                    << getterStr << ".c_str() : nullptr"
-                    ;
-            }
-            else {
-                ofs << ",\n\t\t" << getterStr;
-            }
-        }
-    }
-}
 
 /**
  * This writes the doUpdate() method, which is similar to the doInsert() method,
@@ -486,14 +461,7 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs, con
         << "\tstring sql { \"UPDATE " << table.getDbName() << " SET "
            ;
 
-    string delim {""};
-    int index = 2;
-    for (const Column::Pointer &column: table.getColumns()) {
-        if (!column->getIsPrimaryKey()) {
-            ofs << delim << column->getDbName() << " = $" << index++;
-            delim = ", ";
-        }
-    }
+    generateCPP_ParameterList(table, ofs, 2);
 
     ofs << " WHERE " << pk->getDbName() << " = $1\" };" << endl
         << "\tpqxx::result results = work.exec_params(sql, obj." << pkGetter
@@ -506,6 +474,45 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs, con
         << "}" << endl
         << endl
            ;
+}
+
+/**
+ * We're building an INSERT or UPDATE statement. This is the VALUES portion, which
+ * will be a bunch of $1, $2, nullif($3,0), etc.
+ */
+void
+CodeGenerator_DB::generateCPP_ParameterList(DataModel::Table &table, std::ostream &ofs, int startIndex) {
+    string delim {""};
+    for (const Column::Pointer &column: table.getColumns()) {
+        if (!column->getIsPrimaryKey()) {
+            if (column->isString() || column->isDate() || column->isTimestamp()) {
+                ofs << delim << "nullif($" << startIndex << ", '')";
+            }
+            else if (column->isForeignKey()) {
+                ofs << delim << "nullif($" << startIndex << ", 0)";
+            }
+            else {
+                ofs << delim << "$" << startIndex;
+            }
+            delim = ", ";
+            ++startIndex;
+        }
+    }
+}
+
+/**
+ * This is used to do the latter part of work.exec_params(). We have to handle
+ * nulls / empty strings, 0s in foreign keys.
+ */
+void
+CodeGenerator_DB::generateCPP_FieldArguments(DataModel::Table &table, std::ostream &ofs) {
+    for (const Column::Pointer &column: table.getColumns()) {
+        if (!column->getIsPrimaryKey()) {
+            string getterStr = string{"obj.get"} + firstUpper(column->getName()) + "()";
+            ofs << ",\n\t\t";
+            ofs << getterStr;
+        }
+    }
 }
 
 /**
