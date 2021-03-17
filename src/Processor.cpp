@@ -140,10 +140,15 @@ Processor::generate() {
     CodeGenerator_CPP cppGen(model);
     cppGen.outputFileName = cppDirName;
     cppGen.cppStubDirName = cppStubDirName.length() > 0 ? cppStubDirName : cppDirName;
+    cppGen.cppIncludePath = cppIncludePath;
+    if (cppGen.cppIncludePath.length() > 0 && !endsWith(cppGen.cppIncludePath, "/")) {
+        cppGen.cppIncludePath += "/";
+    }
     cppGen.generate();
 
     CodeGenerator_DB dbGen(model);
     dbGen.outputFileName = cppDirName;
     dbGen.cppStubDirName = cppStubDirName.length() > 0 ? cppStubDirName : cppDirName;
+    dbGen.cppIncludePath = cppGen.cppIncludePath;
     dbGen.generate();
 }

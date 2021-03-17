@@ -10,6 +10,7 @@ public:
     void generate() override;
 
     std::string cppStubDirName;
+    std::string cppIncludePath;
     bool wantJSON = true;
 
 private:
@@ -18,6 +19,11 @@ private:
     // This generates the base classes
     void generateH(DataModel::Table &);
     void generateCPP(DataModel::Table &);
+
+    void generateH_CommonIncludes(std::ostream &, DataModel::Table &);
+    void generateH_ForwardReferences(std::ostream &, DataModel::Table &);
+    void generateH_FK_Access(std::ostream &, DataModel::Table &);
+    void generateH_FK_Storage(std::ostream &, DataModel::Table &);
 
     // This generates subclasses only if they don't already exist.
     void generateConcreteH(DataModel::Table &);

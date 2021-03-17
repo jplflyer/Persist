@@ -612,8 +612,7 @@ DataModel::Table::otherMapTableReference(const Table &other) const {
 }
 
 /**
- * We're a map table to other. Return the column that represents
- * that half of the link.
+ * We may have a foreign key to another table. If so, return it.
  */
 const DataModel::Column::Pointer
 DataModel::Table::ourMapTableReference(const Table &other) const {

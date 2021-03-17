@@ -26,23 +26,24 @@ int main(int argc, char **argv)
     bool doCreate = false;
     bool doGenerate = false;
 
-    args.addNoArg("create",   [&](const char *){ doCreate = true; }, "Create a DataModel file");
-    args.addNoArg("generate", [&](const char *){ doGenerate = true; }, "Generate output");
-    args.addArg  ("model",    [&](const char *arg){ processor.setFileName(arg); }, "fname", "Specify the input/output data model file");
+    args.addNoArg("create",      [&](const char *){ doCreate = true; }, "Create a DataModel file");
+    args.addNoArg("generate",    [&](const char *){ doGenerate = true; }, "Generate output");
+    args.addArg  ("model",       [&](const char *arg){ processor.setFileName(arg); }, "fname", "Specify the input/output data model file");
 
     // Specific to cpp output.
-    args.addArg  ("cppdir",   [&](const char *arg){ processor.setCppDirName(arg); }, "dirname", "Directory for cpp output.");
-    args.addArg  ("stubdir",  [&](const char *arg){ processor.setCppStubDirName(arg); }, "dirname", "The stubs can go to a differe name.");
+    args.addArg  ("cppdir",      [&](const char *arg){ processor.setCppDirName(arg); }, "dirname", "Directory for cpp output.");
+    args.addArg  ("stubdir",     [&](const char *arg){ processor.setCppStubDirName(arg); }, "dirname", "The stubs can go to a differe name.");
+    args.addArg  ("includePath", [&](const char *arg){ processor.setCppIncludePath(arg); }, "dirname", "Used inside #include statements.");
 
     // Specific to model.sql output.
-    args.addArg  ("sql",      [&](const char *arg){ processor.setSQLFileName(arg); }, "foo.sql", "File to write SQL.");
+    args.addArg  ("sql",         [&](const char *arg){ processor.setSQLFileName(arg); }, "foo.sql", "File to write SQL.");
 
     // Specific to manipulating the model.json file.
-    args.addArg  ("table",    [&](const char *arg){ table = processor.specifyTable(arg); }, "tablename", "Create/Update this table");
-    args.addArg  ("column",   [&](const char *arg){ specifyColumn(arg); }, "columnname[,type]", "Create/Update this column");
-    args.addNoArg("pk",       [&](const char *){ if (column != nullptr) column->setIsPrimaryKey(true); }, "Mark column as a primery key.");
-    args.addNoArg("notnull",  [&](const char *){ if (column != nullptr) column->setNullable(false); }, "Mark column as NOT NULL.");
-    args.addArg  ("ref",      [&](const char *arg){ specifyReferences(arg); }, "table[.col]", "Mark this foreign key reference.");
+    args.addArg  ("table",       [&](const char *arg){ table = processor.specifyTable(arg); }, "tablename", "Create/Update this table");
+    args.addArg  ("column",      [&](const char *arg){ specifyColumn(arg); }, "columnname[,type]", "Create/Update this column");
+    args.addNoArg("pk",          [&](const char *){ if (column != nullptr) column->setIsPrimaryKey(true); }, "Mark column as a primery key.");
+    args.addNoArg("notnull",     [&](const char *){ if (column != nullptr) column->setNullable(false); }, "Mark column as NOT NULL.");
+    args.addArg  ("ref",         [&](const char *arg){ specifyReferences(arg); }, "table[.col]", "Mark this foreign key reference.");
 
     if (!OptionHandler::handleOptions(argc, argv, args)) {
         return 1;

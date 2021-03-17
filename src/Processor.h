@@ -14,6 +14,7 @@ private:
 
     std::string		cppDirName = "./gensrc";
     std::string		cppStubDirName;
+    std::string		cppIncludePath;
 
     std::string		sqlFileName = "./db.sql";
 
@@ -21,6 +22,7 @@ public:
     Processor & setFileName(const std::string &value);
     Processor & setCppDirName(const std::string &value) { cppDirName = value; return *this; }
     Processor & setCppStubDirName(const std::string &value) { cppStubDirName = value; return *this; }
+    Processor & setCppIncludePath(const std::string &value) { cppIncludePath = value; return *this; }
     Processor & setSQLFileName(const std::string &value) { sqlFileName = value; return *this; }
 
     DataModel::Table::Pointer specifyTable(const std::string &value);

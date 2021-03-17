@@ -16,6 +16,7 @@ public:
     void generate() override;
 
     std::string cppStubDirName;
+    std::string cppIncludePath;
 
 private:
     // These methods generate the base classes into the stubDir.
@@ -29,7 +30,7 @@ private:
     void generateCPP_DoUpdate(DataModel::Table &, std::ostream &, const std::string &myClassName);
     void generateCPP_DeleteWithId(DataModel::Table &, std::ostream &, const std::string &myClassName);
 
-    void generateCPP_ParameterList(DataModel::Table &, std::ostream &, int startIndex = 1);
+    void generateCPP_ParameterList(DataModel::Table &, std::ostream &, bool forUpdate, int startIndex = 1);
     void generateCPP_FieldArguments(DataModel::Table &, std::ostream &);
 
     void generateH_FromForeignKeys(DataModel::Table &, std::ostream &, const std::string &myClassName);

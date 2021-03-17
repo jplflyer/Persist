@@ -73,7 +73,7 @@ CodeGenerator_DB::generateH(Table &table) {
         << endl
         << "#include <pqxx/pqxx>" << endl
         << endl
-        << "#include \"" << baseClassName << ".h\"" << endl;
+        << "#include <" << cppIncludePath << baseClassName << ".h>" << endl;
             ;
 
     //--------------------------------------------------
@@ -214,7 +214,7 @@ CodeGenerator_DB::generateCPP(Table &table) {
 
     ofs << "#include <iostream>" << endl
         << endl
-        << "#include \"" << myClassName << ".h\"" << endl
+        << "#include <" << cppIncludePath << "base/" << myClassName << ".h>" << endl
         << endl
         << "using std::string;" << endl
         << endl
@@ -431,7 +431,7 @@ void CodeGenerator_DB::generateCPP_DoInsert(Table &table, std::ostream &ofs, con
             << " VALUES ("
                ;
 
-    generateCPP_ParameterList(table, ofs, 1);
+    generateCPP_ParameterList(table, ofs, false, 1);
 
     ofs << ") RETURNING " << pk->getDbName() << "\" };" << endl
         << "\tpqxx::result results = work.exec_params(sql";
@@ -461,7 +461,7 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs, con
         << "\tstring sql { \"UPDATE " << table.getDbName() << " SET "
            ;
 
-    generateCPP_ParameterList(table, ofs, 2);
+    generateCPP_ParameterList(table, ofs, true, 2);
 
     ofs << " WHERE " << pk->getDbName() << " = $1\" };" << endl
         << "\tpqxx::result results = work.exec_params(sql, obj." << pkGetter
@@ -481,18 +481,26 @@ void CodeGenerator_DB::generateCPP_DoUpdate(Table &table, std::ostream &ofs, con
  * will be a bunch of $1, $2, nullif($3,0), etc.
  */
 void
-CodeGenerator_DB::generateCPP_ParameterList(DataModel::Table &table, std::ostream &ofs, int startIndex) {
+CodeGenerator_DB::generateCPP_ParameterList(DataModel::Table &table, std::ostream &ofs, bool forUpdate, int startIndex) {
     string delim {""};
     for (const Column::Pointer &column: table.getColumns()) {
         if (!column->getIsPrimaryKey()) {
-            if (column->isString() || column->isDate() || column->isTimestamp()) {
-                ofs << delim << "nullif($" << startIndex << ", '')";
+            ofs << delim;
+
+            if (forUpdate) {
+                ofs << column->getDbName() << " = ";
+            }
+            if (column->isString() || column->isTimestamp()) {
+                ofs << "nullif($" << startIndex << ", '')";
+            }
+            else if (column->isDate()) {
+                ofs << "date(nullif($" << startIndex << ", ''))";
             }
             else if (column->isForeignKey()) {
-                ofs << delim << "nullif($" << startIndex << ", 0)";
+                ofs << "nullif($" << startIndex << ", 0)";
             }
             else {
-                ofs << delim << "$" << startIndex;
+                ofs << "$" << startIndex;
             }
             delim = ", ";
             ++startIndex;
@@ -551,7 +559,7 @@ void CodeGenerator_DB::generateConcreteH(Table &table)
             << endl
             << "#include <iostream>" << endl
             << "#include <string>" << endl
-            << "#include <" << baseClassName << ".h>" << endl
+            << "#include <" << cppIncludePath << "base/" << baseClassName << ".h>" << endl
             << endl
             << "class " << myClassName << ": public " << baseClassName << " {" << endl
             << "public:" << endl
@@ -571,7 +579,7 @@ void CodeGenerator_DB::generateConcreteCPP(Table &table)
 
     if (!std::filesystem::exists(cppName)) {
         std::ofstream ofs{cppName};
-        ofs << "#include <" << myClassName << ".h>" << endl
+        ofs << "#include <" << cppIncludePath << myClassName << ".h>" << endl
             << endl
             << myClassName << "::~" << myClassName << "() {" << endl
             << "}" << endl

@@ -11,6 +11,7 @@ using namespace ShowLib;
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::ostream;
 using std::string;
 
 using Table = DataModel::Table;
@@ -55,8 +56,8 @@ CodeGenerator_CPP::generateIncludes() {
     std::ofstream dbOutput{dbhName};
 
     for (const Table::Pointer &table: model.getTables()) {
-        hOutput << "#include <" << table->getName() << ".h>" << endl;
-        dbOutput << "#include <DB_" << table->getName() << ".h>" << endl;
+        hOutput << "#include <" << cppIncludePath << table->getName() << ".h>" << endl;
+        dbOutput << "#include <" << cppIncludePath << "DB_" << table->getName() << ".h>" << endl;
     }
 }
 
@@ -86,25 +87,8 @@ CodeGenerator_CPP::generateH(Table &table) {
         ofs << endl;
     }
 
-    //--------------------------------------------------
-    // Foreign reference includes.
-    //
-    // It is unlikely we'll double-reference a table.
-    // We might chain-reference, but the pragma once
-    // will protect us.
-    //--------------------------------------------------
-    bool didRefs = false;
-    for (const Column::Pointer &column: table.getColumns()) {
-        const Column::Pointer ref = column->getReferences();
-        if (ref != nullptr) {
-            Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "#include \"" << refTable->getName() << ".h\"" << endl;
-            didRefs = true;
-        }
-    }
-    if (didRefs) {
-        ofs << endl;
-    }
+    //generateH_CommonIncludes(ofs, table);
+    generateH_ForwardReferences(ofs, table);
 
     //--------------------------------------------------
     // Opening.
@@ -140,6 +124,7 @@ CodeGenerator_CPP::generateH(Table &table) {
     // Getters and setters.
     //--------------------------------------------------
 
+    ofs << endl << "\t// Getters and setters." << endl;
     for (const Column::Pointer &column: table.getColumns()) {
         string upperName = firstUpper(column->getName());
         string cType = cTypeFor(column->getDataType());
@@ -158,6 +143,7 @@ CodeGenerator_CPP::generateH(Table &table) {
             << endl;
            ;
     }
+    generateH_FK_Access(ofs, table);
 
     //--------------------------------------------------
     // JSON methods.
@@ -191,6 +177,7 @@ CodeGenerator_CPP::generateH(Table &table) {
         }
         ofs << ";" << endl;
     }
+    generateH_FK_Storage(ofs, table);
 
     //--------------------------------------------------
     // And close it out.
@@ -214,7 +201,114 @@ CodeGenerator_CPP::generateH(Table &table) {
         ofs << myClassName << "::Pointer find_By" << colUpper
             << "(" << myClassName << "::Vector & vec, const " << dataType << " & value);" << endl;
     }
+}
 
+/**
+ * Generate any includes suggested by having foreing key relationships.
+ *
+ * It is unlikely we'll double-reference a table.
+ * We might chain-reference, but the pragma once
+ * will protect us.
+ */
+void
+CodeGenerator_CPP::generateH_CommonIncludes(std::ostream &ofs, DataModel::Table & table) {
+    bool didRefs = false;
+
+    // Do any FKs we contain.
+    for (const Column::Pointer &column: table.getColumns()) {
+        const Column::Pointer ref = column->getReferences();
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            ofs << "#include <" << cppIncludePath << refTable->getName() << ".h>" << endl;
+            didRefs = true;
+        }
+    }
+
+    // Do any FKs to us. We'll assume we don't point back and forth.
+    for (const Table::Pointer & otherTable: model.getTables()) {
+        Column::Pointer ref = otherTable->ourMapTableReference(table);
+        if (ref != nullptr) {
+            ofs << "#include <" << cppIncludePath << otherTable->getName() << ".h>" << endl;
+            didRefs = true;
+        }
+    }
+
+    // An extra blank line.
+    if (didRefs) {
+        ofs << endl;
+    }
+}
+
+void
+CodeGenerator_CPP::generateH_ForwardReferences(std::ostream &ofs, DataModel::Table &table) {
+    bool didRefs = false;
+
+    // Do any FKs we contain.
+    for (const Column::Pointer &column: table.getColumns()) {
+        const Column::Pointer ref = column->getReferences();
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            ofs << "class " << refTable->getName() << ";" << endl;
+            didRefs = true;
+        }
+    }
+
+    // Do any FKs to us. We'll assume we don't point back and forth.
+    for (const Table::Pointer & otherTable: model.getTables()) {
+        Column::Pointer ref = otherTable->ourMapTableReference(table);
+        if (ref != nullptr) {
+            ofs << "class " << otherTable->getName() << ";" << endl;
+            didRefs = true;
+        }
+    }
+}
+
+/**
+ * This generates the code for foreign key relationships.
+ * This happens in two parts: things we have FKs for, and
+ * tables that have FKs to us.
+ */
+void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &table) {
+    bool didOne = false;
+
+    for (const Column::Pointer &col: table.getColumns()) {
+        Column::Pointer ref = col->getReferences();
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            if (!didOne) {
+                ofs << endl << "\t// Foreign relationships." << endl;
+                didOne = true;
+            }
+            ofs << "\tstd::shared_ptr<" << refTable->getName() << "> get" << refTable->getName() << "() const"
+                << " { return " << firstLower(refTable->getName()) << "; }" << endl
+                << "\tvoid set" << refTable->getName() << "(std::shared_ptr<" << refTable->getName() << "> ptr)"
+                << " { " << firstLower(refTable->getName()) << " = ptr; }" << endl
+                ;
+        }
+    }
+}
+
+/**
+ * This generates the code for foreign key relationships.
+ */
+void CodeGenerator_CPP::generateH_FK_Storage(ostream &ofs, DataModel::Table &table) {
+    for (const Column::Pointer &col: table.getColumns()) {
+        Column::Pointer ref = col->getReferences();
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            ofs << "\tstd::shared_ptr<" << refTable->getName() << "> " << firstLower(refTable->getName())
+                << " = nullptr;" << endl;
+        }
+    }
+
+    for (const Table::Pointer & otherTable: model.getTables()) {
+        Column::Pointer ref = otherTable->ourMapTableReference(table);
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            ofs << "\tstd::vector<std::shared_ptr<" << refTable->getName() << ">> " << firstLower(refTable->getName())
+                << "Vector;" << endl;
+        }
+    }
 }
 
 /**
@@ -229,8 +323,8 @@ CodeGenerator_CPP::generateCPP(Table &table) {
 
     ofs << "#include <iostream>" << endl
         << endl
-        << "#include \"" << myClassName << ".h\"" << endl
-        << "#include \"" << name << ".h\"" << endl
+        << "#include <" << cppIncludePath << "base/" << myClassName << ".h>" << endl
+        << "#include <" << cppIncludePath << name << ".h>" << endl
         << endl
         << "using std::string;" << endl
         << endl
@@ -307,7 +401,7 @@ void CodeGenerator_CPP::generateConcreteH(DataModel::Table &table)
             << endl
             << "#include <iostream>" << endl
             << "#include <string>" << endl
-            << "#include <" << baseClassName << ".h>" << endl
+            << "#include <" << cppIncludePath << "base/" << baseClassName << ".h>" << endl
             << endl
             << "class " << name << ": public " << baseClassName << " {" << endl
             << "public:" << endl
@@ -336,7 +430,7 @@ void CodeGenerator_CPP::generateConcreteCPP(DataModel::Table &table)
 
     if (!std::filesystem::exists(cppName)) {
         std::ofstream ofs{cppName};
-        ofs << "#include <" << name << ".h>" << endl
+        ofs << "#include <" << cppIncludePath << name << ".h>" << endl
             << endl
             << name << "::~" << name << "() {" << endl
             << "}" << endl
