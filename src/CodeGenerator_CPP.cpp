@@ -42,6 +42,8 @@ CodeGenerator_CPP::generate() {
         generateConcreteH(*table);
         generateConcreteCPP(*table);
     }
+
+    generateUtilities();
 }
 
 /**
@@ -286,6 +288,29 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
                 ;
         }
     }
+
+    //----------------------------------------------------------------------
+    // This is for things that have FK relationships to us. We'll store
+    // a vector and put getFoos and addFoo method.
+    //----------------------------------------------------------------------
+    didOne = false;
+    for (const Table::Pointer & otherTable: model.getTables()) {
+        Column::Pointer ref = otherTable->ourMapTableReference(table);
+        if (ref != nullptr) {
+            if (!didOne) {
+                ofs << endl;
+                didOne = true;
+            }
+            Table::Pointer refTable = ref->getOurTable().lock();
+            ofs << "	std::vector<std::shared_ptr<" << refTable->getName() << ">> "
+                << "get" << refTable->getName() << "s() const { return "
+                << firstLower(refTable->getName()) << "Vector; }" << endl
+                << "	void add" << refTable->getName() << "(const std::shared_ptr<"
+                << refTable->getName() << "> ptr) { " << firstLower(refTable->getName())
+                << "Vector.push_back(ptr); }" << endl
+                   ;
+        }
+    }
 }
 
 /**
@@ -455,4 +480,101 @@ bool CodeGenerator_CPP::isBool(const std::string &cType) {
 }
 bool CodeGenerator_CPP::isString(const std::string &cType) {
     return cType == "string";
+}
+
+//----------------------------------------------------------------------
+// This is for generating the Utilities objects, defined in base/Utilities.h
+//----------------------------------------------------------------------
+
+void
+CodeGenerator_CPP::generateUtilities() {
+    string hName = cppStubDirName + "/Utilities.h";
+    string cppName = cppStubDirName + "/Utilities.cpp";
+
+    std::ofstream hOutput{hName};
+    std::ofstream cppOutput{cppName};
+
+    //----------------------------------------------------------------------
+    // The includes in both the .h and .cpp
+    //----------------------------------------------------------------------
+    hOutput << "#include <vector>" << endl
+            << "#include <memory>" << endl
+            << endl;
+
+    for (const Table::Pointer &table: model.getTables()) {
+        hOutput << "#include <" << cppIncludePath << table->getName() << ".h>" << endl;
+    }
+    hOutput << endl;
+
+    cppOutput << "#include <iostream>" << endl
+              << "#include \"Utilities.h\"" << endl
+              << endl;
+
+    //----------------------------------------------------------------------
+    // Now for each file, we find any FK references and create the helper.
+    //----------------------------------------------------------------------
+    for (const Table::Pointer &table: model.getTables()) {
+        for (const Column::Pointer &column: table->getColumns()) {
+            const Column::Pointer ref = column->getReferences();
+            if (ref != nullptr) {
+                Table::Pointer refTable = ref->getOurTable().lock();
+                string fromGetter = string{"get"} + ShowLib::firstUpper(column->getName());
+                string toGetter = string{"get"} + ShowLib::firstUpper(ref->getName());
+                string fromSetter = string{"set"} + refTable->getName();
+                string toAdder = string{"add"} + table->getName();
+
+                // We do this bidirection so you don't need to remember which way.
+                hOutput
+                        << "void resolveReferences("
+                        << table->getName() << "::Vector &, "
+                        << refTable->getName() << "::Vector &);"
+                        << endl
+
+                        << "void resolveReferences("
+                        << refTable->getName() << "::Vector &vecA, "
+                        << table->getName() << "::Vector &vecB);" << endl
+
+                        << "void resolveReferences("
+                        << refTable->getName() << "::Pointer &, "
+                        << table->getName() << "::Vector &);" << endl
+                        << endl ;
+
+                // And we do a version that takes the single object (with the PK)
+                // and a vector of possible children.
+
+                cppOutput << "void resolveReferences("
+                        << table->getName() << "::Vector &vecA, "
+                        << refTable->getName() << "::Vector &vecB) {" << endl
+                        << "	for (const " << table->getName() << "::Pointer &outer: vecA) {" << endl
+                        << "		for (const " << refTable->getName() << "::Pointer &inner: vecB) {" << endl
+                        << "			if (outer->" << fromGetter << "() == inner->" << toGetter << "()) {" << endl
+                        << "				outer->" << fromSetter << "(inner);" << endl
+                        << "				inner->" << toAdder << "(outer);" << endl
+                        << "			}" << endl
+                        << "		}" << endl
+                        << "	}" << endl
+                        << "}" << endl << endl
+                           ;
+
+                cppOutput << "void resolveReferences("
+                          << refTable->getName() << "::Vector &vecA, " << table->getName() << "::Vector &vecB) {" << endl
+                          << "	resolveReferences(vecB, vecA); " << endl
+                          << "}" << endl << endl;
+
+                cppOutput << "void resolveReferences("
+                        << refTable->getName() << "::Pointer &parent, "
+                        << table->getName() << "::Vector &vec) {" << endl
+                        << "	for (const " << table->getName() << "::Pointer &child: vec) {" << endl
+                        << "		if (child->" << fromGetter << "() == parent->" << toGetter << "()) {" << endl
+                        << "			child->" << fromSetter << "(parent);" << endl
+                        << "			parent->" << toAdder << "(child);" << endl
+                        << "		}" << endl
+                        << "	}" << endl
+                           ;
+
+                cppOutput << "}" << endl << endl;
+
+            }
+        }
+    }
 }

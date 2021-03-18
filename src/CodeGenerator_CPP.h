@@ -19,6 +19,7 @@ private:
     // This generates the base classes
     void generateH(DataModel::Table &);
     void generateCPP(DataModel::Table &);
+    void generateUtilities();
 
     void generateH_CommonIncludes(std::ostream &, DataModel::Table &);
     void generateH_ForwardReferences(std::ostream &, DataModel::Table &);
