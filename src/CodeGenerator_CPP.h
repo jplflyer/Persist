@@ -21,10 +21,11 @@ private:
     void generateCPP(DataModel::Table &);
     void generateUtilities();
 
-    void generateH_CommonIncludes(std::ostream &, DataModel::Table &);
     void generateH_ForwardReferences(std::ostream &, DataModel::Table &);
     void generateH_FK_Access(std::ostream &, DataModel::Table &);
     void generateH_FK_Storage(std::ostream &, DataModel::Table &);
+
+    void generateC_CommonIncludes(std::ostream &, DataModel::Table &);
 
     // This generates subclasses only if they don't already exist.
     void generateConcreteH(DataModel::Table &);

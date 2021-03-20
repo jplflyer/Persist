@@ -89,7 +89,6 @@ CodeGenerator_CPP::generateH(Table &table) {
         ofs << endl;
     }
 
-    //generateH_CommonIncludes(ofs, table);
     generateH_ForwardReferences(ofs, table);
 
     //--------------------------------------------------
@@ -117,8 +116,8 @@ CodeGenerator_CPP::generateH(Table &table) {
     //--------------------------------------------------
     // Constructors and destructor
     //--------------------------------------------------
-    ofs << "    " << myClassName << "() = default;" << endl
-        << "    " << myClassName << "(const JSON &json) { fromJSON(json); }" << endl
+    ofs << "    " << myClassName << "();" << endl
+        << "    " << myClassName << "(const JSON &json);" << endl
         << "	virtual ~" << myClassName << "();" << endl
            ;
 
@@ -137,13 +136,11 @@ CodeGenerator_CPP::generateH(Table &table) {
 
         ofs << "    " << constness << ns << cType << refness << " get" << upperName
             << "() const { return " << column->getName() << "; }" << endl;
-           ;
 
         ofs << "    " << myClassName << " & set" << upperName
             << " (" << constness << ns << cType << refness << " value)"
             << " { " << column->getName() << " = value; return *this; }"
             << endl;
-           ;
     }
     generateH_FK_Access(ofs, table);
 
@@ -205,41 +202,6 @@ CodeGenerator_CPP::generateH(Table &table) {
     }
 }
 
-/**
- * Generate any includes suggested by having foreing key relationships.
- *
- * It is unlikely we'll double-reference a table.
- * We might chain-reference, but the pragma once
- * will protect us.
- */
-void
-CodeGenerator_CPP::generateH_CommonIncludes(std::ostream &ofs, DataModel::Table & table) {
-    bool didRefs = false;
-
-    // Do any FKs we contain.
-    for (const Column::Pointer &column: table.getColumns()) {
-        const Column::Pointer ref = column->getReferences();
-        if (ref != nullptr) {
-            Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "#include <" << cppIncludePath << refTable->getName() << ".h>" << endl;
-            didRefs = true;
-        }
-    }
-
-    // Do any FKs to us. We'll assume we don't point back and forth.
-    for (const Table::Pointer & otherTable: model.getTables()) {
-        Column::Pointer ref = otherTable->ourMapTableReference(table);
-        if (ref != nullptr) {
-            ofs << "#include <" << cppIncludePath << otherTable->getName() << ".h>" << endl;
-            didRefs = true;
-        }
-    }
-
-    // An extra blank line.
-    if (didRefs) {
-        ofs << endl;
-    }
-}
 
 void
 CodeGenerator_CPP::generateH_ForwardReferences(std::ostream &ofs, DataModel::Table &table) {
@@ -302,7 +264,7 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
                 didOne = true;
             }
             Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "	std::vector<std::shared_ptr<" << refTable->getName() << ">> "
+            ofs << "	const ShowLib::JSONSerializableVector<" << refTable->getName() << "> & "
                 << "get" << refTable->getName() << "s() const { return "
                 << firstLower(refTable->getName()) << "Vector; }" << endl
                 << "	void add" << refTable->getName() << "(const std::shared_ptr<"
@@ -330,7 +292,7 @@ void CodeGenerator_CPP::generateH_FK_Storage(ostream &ofs, DataModel::Table &tab
         Column::Pointer ref = otherTable->ourMapTableReference(table);
         if (ref != nullptr) {
             Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "\tstd::vector<std::shared_ptr<" << refTable->getName() << ">> " << firstLower(refTable->getName())
+            ofs << "	ShowLib::JSONSerializableVector<" << refTable->getName() << "> " << firstLower(refTable->getName())
                 << "Vector;" << endl;
         }
     }
@@ -348,13 +310,37 @@ CodeGenerator_CPP::generateCPP(Table &table) {
 
     ofs << "#include <iostream>" << endl
         << endl
+
         << "#include <" << cppIncludePath << "base/" << myClassName << ".h>" << endl
         << "#include <" << cppIncludePath << name << ".h>" << endl
+           ;
+
+    generateC_CommonIncludes(ofs, table);
+
+    ofs << "using std::string;" << endl
         << endl
-        << "using std::string;" << endl
+
+        << "/**" << endl
+        << " * Constructor." << endl
+        << " */" << endl
+        << myClassName << "::" << myClassName << "() {" << endl
+        << "}" << endl
         << endl
+
+        << "/**" << endl
+        << " * Constructor from JSON." << endl
+        << " */" << endl
+        << myClassName << "::" << myClassName << "(const JSON &json) {" << endl
+        << "	fromJSON(json);" << endl
+        << "}" << endl
+        << endl
+
+        << "/**" << endl
+        << " * Destructor." << endl
+        << " */" << endl
         << myClassName << "::~" << myClassName << "() {" << endl
         << "}" << endl
+
         << endl
        ;
 
@@ -406,10 +392,44 @@ CodeGenerator_CPP::generateCPP(Table &table) {
             << "    return vec.findIf([=](const " << name
                 << "::Pointer &ptr){ return ptr->get" << colUpper << "() == value; });" << endl
             << "}" << endl;
-       ;
     }
 }
 
+/**
+ * Generate any includes suggested by having foreing key relationships.
+ *
+ * It is unlikely we'll double-reference a table.
+ * We might chain-reference, but the pragma once
+ * will protect us.
+ */
+void
+CodeGenerator_CPP::generateC_CommonIncludes(std::ostream &ofs, DataModel::Table & table) {
+    bool didRefs = false;
+
+    // Do any FKs we contain.
+    for (const Column::Pointer &column: table.getColumns()) {
+        const Column::Pointer ref = column->getReferences();
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            ofs << "#include <" << cppIncludePath << refTable->getName() << ".h>" << endl;
+            didRefs = true;
+        }
+    }
+
+    // Do any FKs to us. We'll assume we don't point back and forth.
+    for (const Table::Pointer & otherTable: model.getTables()) {
+        Column::Pointer ref = otherTable->ourMapTableReference(table);
+        if (ref != nullptr) {
+            ofs << "#include <" << cppIncludePath << otherTable->getName() << ".h>" << endl;
+            didRefs = true;
+        }
+    }
+
+    // An extra blank line.
+    if (didRefs) {
+        ofs << endl;
+    }
+}
 /**
  * Generate the concrete base class.h if it doesn't exist.
  */
