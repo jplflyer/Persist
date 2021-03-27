@@ -524,11 +524,25 @@ CodeGenerator_CPP::generateUtilities() {
     for (const Table::Pointer &table: model.getTables()) {
         hOutput << "#include <" << cppIncludePath << table->getName() << ".h>" << endl;
     }
-    hOutput << endl;
 
     cppOutput << "#include <iostream>" << endl
               << "#include \"Utilities.h\"" << endl
               << endl;
+
+    //----------------------------------------------------------------------
+    // Generate a findById() call.
+    //----------------------------------------------------------------------
+
+    hOutput
+        << endl
+        << "/**" << endl
+        << " * All our tables have an id field. Search a vector on it."<< endl
+        << " */"<< endl
+        << "template<typename T>"<< endl
+        << "std::shared_ptr<T> findById(const ShowLib::JSONSerializableVector<T> & vec, int id) {"<< endl
+        << "	return vec.findIf( [=](auto ptr) { return ptr->getId() == id; } );"<< endl
+        << "}"<< endl
+        << endl;
 
     //----------------------------------------------------------------------
     // Now for each file, we find any FK references and create the helper.
