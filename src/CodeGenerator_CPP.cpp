@@ -233,17 +233,14 @@ CodeGenerator_CPP::generateH_ForwardReferences(std::ostream &ofs, DataModel::Tab
  * tables that have FKs to us.
  */
 void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &table) {
-    bool didOne = false;
 
+    ofs << endl << "\t// Foreign relationships." << endl;
     for (const Column::Pointer &col: table.getColumns()) {
         Column::Pointer ref = col->getReferences();
         if (ref != nullptr) {
             Table::Pointer refTable = ref->getOurTable().lock();
-            if (!didOne) {
-                ofs << endl << "\t// Foreign relationships." << endl;
-                didOne = true;
-            }
-            ofs << "\tstd::shared_ptr<" << refTable->getName() << "> get" << refTable->getName() << "() const"
+            ofs << endl
+                << "\tstd::shared_ptr<" << refTable->getName() << "> get" << refTable->getName() << "() const"
                 << " { return " << firstLower(refTable->getName()) << "; }" << endl
                 << "\tvoid set" << refTable->getName() << "(std::shared_ptr<" << refTable->getName() << "> ptr)"
                 << " { " << firstLower(refTable->getName()) << " = ptr; }" << endl
@@ -255,21 +252,16 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
     // This is for things that have FK relationships to us. We'll store
     // a vector and put getFoos and addFoo method.
     //----------------------------------------------------------------------
-    didOne = false;
     for (const Table::Pointer & otherTable: model.getTables()) {
         Column::Pointer ref = otherTable->ourMapTableReference(table);
         if (ref != nullptr) {
-            if (!didOne) {
-                ofs << endl;
-                didOne = true;
-            }
             Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "	const ShowLib::JSONSerializableVector<" << refTable->getName() << "> & "
+            ofs << endl
+                << "	const ShowLib::JSONSerializableVector<" << refTable->getName() << "> & "
                 << "get" << refTable->getName() << "s() const { return "
                 << firstLower(refTable->getName()) << "Vector; }" << endl
-                << "	void add" << refTable->getName() << "(const std::shared_ptr<"
-                << refTable->getName() << "> ptr) { " << firstLower(refTable->getName())
-                << "Vector.push_back(ptr); }" << endl
+                << "	void add" << refTable->getName() << "(const std::shared_ptr<" << refTable->getName() << ">);" << endl
+                << "	void remove" << refTable->getName() << "(const std::shared_ptr<" << refTable->getName() << ">);" << endl
                    ;
         }
     }
@@ -309,6 +301,8 @@ CodeGenerator_CPP::generateCPP(Table &table) {
     std::ofstream ofs{cppName};
 
     ofs << "#include <iostream>" << endl
+        << endl
+        << "#include <showlib/VectorUtilities.h>" << endl
         << endl
 
         << "#include <" << cppIncludePath << "base/" << myClassName << ".h>" << endl
@@ -393,6 +387,18 @@ CodeGenerator_CPP::generateCPP(Table &table) {
                 << "::Pointer &ptr){ return ptr->get" << colUpper << "() == value; });" << endl
             << "}" << endl;
     }
+
+    //======================================================================
+    // Here is where we generate added and remover methods against
+    // things with foreign key relationships to us.
+    //======================================================================
+    for (const Table::Pointer & otherTable: model.getTables()) {
+        Column::Pointer ref = otherTable->ourMapTableReference(table);
+        if (ref != nullptr) {
+            generateC_FK_Add(ofs, table, *otherTable, *ref);
+            generateC_FK_Remove(ofs, table, *otherTable, *ref);
+        }
+    }
 }
 
 /**
@@ -430,6 +436,55 @@ CodeGenerator_CPP::generateC_CommonIncludes(std::ostream &ofs, DataModel::Table 
         ofs << endl;
     }
 }
+
+/**
+ * void addFoo(Foo::Pointer obj) {
+ *      int thisId = ptr->getId();
+ *      ShowLib::addIfNot(vec, obj, [=](const Foo::Pointer ptr){ return ptr->getId() == thisId; });
+ * }
+ */
+void
+CodeGenerator_CPP::generateC_FK_Add(
+    std::ostream &ofs,
+    DataModel::Table & table,
+    DataModel::Table & refTable,
+    DataModel::Column &ref)
+{
+    string refName = refTable.getName();
+    string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
+
+    ofs << endl
+        << "void " << table.getName() << "_Base::"
+        << "add" << refTable.getName() << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
+        << "    int thisId = obj->getId();" << endl
+        << "    ShowLib::addIfNot(" << vecName << ", obj, [=](" << refName << "::Pointer ptr){ return ptr->getId() == thisId; });" << endl
+        << "}" << endl
+           ;
+}
+
+void
+CodeGenerator_CPP::generateC_FK_Remove(
+    std::ostream &ofs,
+    DataModel::Table & table,
+    DataModel::Table & refTable,
+    DataModel::Column &ref )
+{
+    string refName = refTable.getName();
+    string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
+
+    ofs << endl
+        << "void " << table.getName() << "_Base::"
+        << "remove" << refTable.getName() << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
+        << "    int thisId = obj->getId();" << endl
+        << "    ShowLib::eraseIf(" << vecName << ", [=](" << refName << "::Pointer ptr){ return ptr->getId() == thisId; });" << endl
+        << "}" << endl
+           ;
+}
+
+//======================================================================
+// The concrete (subclass) include file.
+//======================================================================
+
 /**
  * Generate the concrete base class.h if it doesn't exist.
  */

@@ -26,6 +26,8 @@ private:
     void generateH_FK_Storage(std::ostream &, DataModel::Table &);
 
     void generateC_CommonIncludes(std::ostream &, DataModel::Table &);
+    void generateC_FK_Add(std::ostream &, DataModel::Table &, DataModel::Table &, DataModel::Column &);
+    void generateC_FK_Remove(std::ostream &, DataModel::Table &, DataModel::Table &, DataModel::Column &);
 
     // This generates subclasses only if they don't already exist.
     void generateConcreteH(DataModel::Table &);
