@@ -262,6 +262,7 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
                 << firstLower(refTable->getName()) << "Vector; }" << endl
                 << "	void add" << refTable->getName() << "(const std::shared_ptr<" << refTable->getName() << ">);" << endl
                 << "	void remove" << refTable->getName() << "(const std::shared_ptr<" << refTable->getName() << ">);" << endl
+                << "	void removeAll" << refTable->getName() << "();" << endl
                    ;
         }
     }
@@ -397,6 +398,7 @@ CodeGenerator_CPP::generateCPP(Table &table) {
         if (ref != nullptr) {
             generateC_FK_Add(ofs, table, *otherTable, *ref);
             generateC_FK_Remove(ofs, table, *otherTable, *ref);
+            generateC_FK_RemoveAll(ofs, table, *otherTable, *ref);
         }
     }
 }
@@ -448,7 +450,7 @@ CodeGenerator_CPP::generateC_FK_Add(
     std::ostream &ofs,
     DataModel::Table & table,
     DataModel::Table & refTable,
-    DataModel::Column &ref)
+    DataModel::Column &)
 {
     string refName = refTable.getName();
     string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
@@ -462,12 +464,15 @@ CodeGenerator_CPP::generateC_FK_Add(
            ;
 }
 
+/**
+ * Generate removeFoo(Foo::Pointer foo) {...}
+ */
 void
 CodeGenerator_CPP::generateC_FK_Remove(
     std::ostream &ofs,
     DataModel::Table & table,
     DataModel::Table & refTable,
-    DataModel::Column &ref )
+    DataModel::Column &)
 {
     string refName = refTable.getName();
     string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
@@ -479,6 +484,27 @@ CodeGenerator_CPP::generateC_FK_Remove(
         << "    ShowLib::eraseIf(" << vecName << ", [=](" << refName << "::Pointer ptr){ return ptr->getId() == thisId; });" << endl
         << "}" << endl
            ;
+}
+
+/**
+ * Generate removeAllFoo(Foo::Pointer foo) {...}
+ */
+void
+CodeGenerator_CPP::generateC_FK_RemoveAll(
+     std::ostream &ofs,
+     DataModel::Table & table,
+     DataModel::Table & refTable,
+     DataModel::Column &)
+{
+    string refName = refTable.getName();
+    string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
+
+    ofs << endl
+        << "void " << table.getName() << "_Base::"
+        << "removeAll" << refTable.getName() << "() {" << endl
+        << "    " << vecName << ".clear();" << endl
+        << "}" << endl
+    ;
 }
 
 //======================================================================
