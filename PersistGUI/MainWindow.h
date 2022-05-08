@@ -22,6 +22,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void load(const std::string);
+
 private slots:
     void on_actionNew_triggered();
     void on_actionOpen_triggered();
@@ -44,7 +46,6 @@ private:
 
     void fixRecents();
     void fixButtons();
-    void load(const std::string);
     void loadRecent(size_t index);
 
     void showTables();

@@ -97,8 +97,9 @@ MainWindow::loadRecent(size_t index) {
  * Load this model.
  */
 void MainWindow::load(const std::string fileName) {
-    cout << "Load: " << fileName << endl;
-    if (std::filesystem::exists(fileName) && std::filesystem::is_regular_file(fileName)) {
+    std::filesystem::path path(fileName);
+
+    if (std::filesystem::exists(path) && std::filesystem::is_regular_file(path)) {
         model.clear();
 
         modelFileName = fileName;
@@ -116,7 +117,8 @@ void MainWindow::load(const std::string fileName) {
 
             ui->nameTF->setText(QString::fromStdString(model.getName()));
 
-            Configuration::singleton().pushRecent(fileName).save();
+            std::filesystem::path absolute = std::filesystem::absolute(path);
+            Configuration::singleton().pushRecent(absolute.string()).save();
             fixRecents();
         }
 
