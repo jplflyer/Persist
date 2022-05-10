@@ -51,7 +51,7 @@ DataModel::fromJSON(const JSON &json)  {
  */
 JSON &
 DataModel::toJSON(JSON &json) const {
-    JSON tablesJSON{JSON::array()};
+    JSON tablesJSON = JSON::array();
     json["name"] = name;
     json["tables"] = tables.toJSON(tablesJSON);
     return json;
@@ -490,7 +490,7 @@ DataModel::Table::fromJSON(const JSON &json)  {
  */
 JSON &
 DataModel::Table::toJSON(JSON &json) const {
-    JSON colsJSON{ JSON::array() };
+    JSON colsJSON = JSON::array();
 
     json["name"] = name;
     json["dbName"] = dbName;
