@@ -92,7 +92,7 @@ public:
         bool deepEquals(const Column &orig) const;
 
         void fromJSON(const JSON &) override;
-        JSON & toJSON(JSON &) const override;
+        JSON toJSON() const override;
 
         std::weak_ptr<Table> getOurTable() const { return ourTable; }
 
@@ -185,7 +185,7 @@ public:
         bool deepEquals(const Table &orig) const;
 
         void fromJSON(const JSON &) override;
-        JSON & toJSON(JSON &) const override;
+        JSON toJSON() const override;
 
         const std::string getName() const { return name; }
         const std::string getDbName() const { return dbName; }
@@ -223,7 +223,7 @@ public:
     bool deepEquals(const DataModel &orig) const;
 
     void fromJSON(const JSON &) override;
-    JSON & toJSON(JSON &) const override;
+    JSON toJSON() const override;
 
     const std::string & getName() const { return name; }
     void setName(const std::string &value) { name = value; markDirty(); }

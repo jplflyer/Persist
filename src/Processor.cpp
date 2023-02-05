@@ -124,7 +124,7 @@ Processor::fixReferences() {
 void
 Processor::writeModel() {
     std::ofstream ofs{fileName};
-    JSON json = model.getJSON();
+    JSON json = model.toJSON();
     ofs << json.dump(2) << endl;
 }
 

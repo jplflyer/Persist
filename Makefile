@@ -10,7 +10,7 @@
 
 # This needs to be above the include, as he has targets.
 .PHONY: all
-all: directories DataModeler
+all: directories makelib DataModeler
 
 # We include a standard base with lots of boilerplate.
 include ../ShowLib/Makefile-Base
@@ -26,6 +26,8 @@ SRC_NOSORT := $(wildcard src/*.cpp)
 SRC_SORTED := $(sort ${SRC_NOSORT})
 OBJS := $(patsubst src/%.cpp,${OBJDIR}/%.o,${SRC_SORTED})
 OBJS_NOMAIN := $(patsubst ${OBJDIR}/main.o,,${OBJS})
+
+CORES = $(shell lscpu | egrep Core.s | cut -d: -f2 | sed 's/ //g')
 
 #======================================================================
 # Top-level targets.
@@ -51,6 +53,22 @@ echo:
 	@echo OBJS_NOMAIN is ${OBJS_NOMAIN}
 	@echo VPATH = ${VPATH}
 	@echo LDFLAGS = ${LDFLAGS}
+	@echo CORES is ${CORES}
+
+#
+# This target gets called from make all. It is used to
+# do -j10 while making the .o files -- speeding it up
+# rather dramatically.
+#
+# If you just set MAKEFLAGS += -j10, and you do "make clean all",
+# the parallelism doesn't work. It tries to make the binary because
+# it doesn't realize that the .o list was cleared out by the clean
+# target.
+#
+makelib:
+	@$(MAKE) ${THREADING_ARG} --output-sync=target --no-print-directory objects
+
+objects: ${OBJS}
 
 #======================================================================
 # How to make the data modeler.
