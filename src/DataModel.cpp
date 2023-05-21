@@ -395,7 +395,7 @@ std::string
 DataModel::Column::fullName(bool useDbName) const {
     Table::Pointer table = ourTable.lock();
 
-    return (useDbName ? table->getDbName() : table->getName()) + " (" + (useDbName ? name : dbName) + ")";
+    return (useDbName ? table->getDbName() : table->getName()) + " (" + (useDbName ? dbName : name) + ")";
 }
 
 /**
