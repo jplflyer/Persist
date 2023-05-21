@@ -2,17 +2,14 @@
 #include <fstream>
 #include <filesystem>
 
+#include <showlib/CommonUsing.h>
 #include <showlib/StringUtils.h>
 
 #include "CodeGenerator_CPP.h"
 
 using namespace ShowLib;
 
-using std::cout;
-using std::cerr;
-using std::endl;
 using std::ostream;
-using std::string;
 
 using Table = DataModel::Table;
 using Column = DataModel::Column;
@@ -445,44 +442,58 @@ CodeGenerator_CPP::generateC_CommonIncludes(std::ostream &ofs, DataModel::Table 
  *      int thisId = ptr->getId();
  *      ShowLib::addIfNot(vec, obj, [=](const Foo::Pointer ptr){ return ptr->getId() == thisId; });
  * }
+ *
+ * @param ofs The output stream (a C++ file)
+ * @param table The parent table (we're probably referenced by our primary key)
+ * @param refTable The table with a foreign key into us
+ * @param refColumn The column in the other table that links to us
  */
 void
 CodeGenerator_CPP::generateC_FK_Add(
     std::ostream &ofs,
     DataModel::Table & table,
     DataModel::Table & refTable,
-    DataModel::Column &)
+    DataModel::Column & refColumn)
 {
+    string myCol = ShowLib::firstUpper(refColumn.getReferences()->getName());
+    string theirCol = ShowLib::firstUpper(refColumn.getName());
     string refName = refTable.getName();
     string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
 
     ofs << endl
         << "void " << table.getName() << "_Base::"
         << "add" << refTable.getName() << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
-        << "    int thisId = obj->getId();" << endl
-        << "    ShowLib::addIfNot(" << vecName << ", obj, [=](" << refName << "::Pointer ptr){ return ptr->getId() == thisId; });" << endl
+        << "    int thisId = obj->get" << myCol << "();" << endl
+        << "    ShowLib::addIfNot(" << vecName << ", obj, [=](" << refName << "::Pointer ptr){ return ptr->get" << theirCol << "() == thisId; });" << endl
         << "}" << endl
            ;
 }
 
 /**
  * Generate removeFoo(Foo::Pointer foo) {...}
+ *
+ * @param ofs The output stream (a C++ file)
+ * @param table The parent table (we're probably referenced by our primary key)
+ * @param refTable The table with a foreign key into us
+ * @param refColumn The column in the other table that links to us
  */
 void
 CodeGenerator_CPP::generateC_FK_Remove(
     std::ostream &ofs,
     DataModel::Table & table,
     DataModel::Table & refTable,
-    DataModel::Column &)
+    DataModel::Column & refColumn)
 {
+    string myCol = ShowLib::firstUpper(refColumn.getReferences()->getName());
+    string theirCol = ShowLib::firstUpper(refColumn.getName());
     string refName = refTable.getName();
     string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
 
     ofs << endl
         << "void " << table.getName() << "_Base::"
         << "remove" << refTable.getName() << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
-        << "    int thisId = obj->getId();" << endl
-        << "    ShowLib::eraseIf(" << vecName << ", [=](" << refName << "::Pointer ptr){ return ptr->getId() == thisId; });" << endl
+        << "    int thisId = obj->get" << myCol << "();" << endl
+        << "    ShowLib::eraseIf(" << vecName << ", [=](" << refName << "::Pointer ptr){ return ptr->get" << theirCol << "() == thisId; });" << endl
         << "}" << endl
            ;
 }
