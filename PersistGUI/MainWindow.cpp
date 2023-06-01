@@ -194,8 +194,7 @@ void MainWindow::on_actionSave_triggered()
     }
     if (modelFileName.length() > 0) {
         std::ofstream ofs {modelFileName};
-        JSON json;
-        model.toJSON(json);
+        JSON json = model.toJSON();
         ofs << json.dump(2);
         model.markClean();
     }
@@ -236,7 +235,7 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int ) {
  * This table has been changed.
  */
 void
-MainWindow::tableChanged(DataModel::Table::Pointer table) {
+MainWindow::tableChanged(DataModel::Table::Pointer ) {
     model.sortTables();
     showTables();
 }

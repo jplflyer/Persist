@@ -97,6 +97,7 @@ public:
         std::weak_ptr<Table> getOurTable() const { return ourTable; }
 
         const std::string getName() const { return name; }
+        const std::string getRefPtrName() const { return refPtrName; }
         const std::string getDbName() const { return dbName; }
         const std::string getReferenceStr() const { return referenceStr; }
         DataType getDataType() const { return dataType; }
@@ -107,6 +108,7 @@ public:
         bool getIsPrimaryKey() const { return isPrimaryKey; }
         bool getWantIndex() const { return wantIndex; }
         bool getWantFinder() const { return wantFinder; }
+        bool getSerialize() const { return serialize; }
 
         bool isString() const;
         bool isDate() const;
@@ -116,6 +118,7 @@ public:
         Pointer getReferences() const { return references; }
 
         Column & setName(const std::string &value) { name = value; return *this; }
+        Column & setRefPtrName(const std::string &value) { refPtrName = value; return *this; }
         Column & setDbName(const std::string &value) { dbName = value; return *this; }
 
         Column & setReferenceStr(const std::string &value) {
@@ -131,6 +134,7 @@ public:
         Column & setIsPrimaryKey(bool value) { isPrimaryKey = value; return *this; }
         Column & setWantIndex(bool value) { wantIndex = value; return *this; }
         Column & setWantFinder(bool value) { wantFinder = value; return *this; }
+        Column & setSerialize(bool value) { serialize = value; return *this; }
 
         Column & setReferences(Pointer value) { references = value; return *this; }
 
@@ -144,6 +148,13 @@ public:
 
         /** This is the name within C++ */
         std::string	name;
+
+        /**
+         * If this is a foreign key, then this is the name of the field holding a pointer.
+         * If empty, we end up using the remote table name, which works any time that
+         * we don't have two references to the same table.
+         */
+        std::string	refPtrName;
 
         /** This is the column name */
         std::string	dbName;
@@ -162,10 +173,23 @@ public:
         //----------------------------------------------------------------------
         // Attributes
         //----------------------------------------------------------------------
+        /** Are null values allowed? */
         bool nullable = true;
+
+        /** Is this the primary key? */
         bool isPrimaryKey = false;
+
+        /** Generate an index? */
         bool wantIndex = false;
+
+        /** Generate a finder method on the vector? */
         bool wantFinder = false;
+
+        /**
+         * Should this column be serialized in toJSON() / fromJSON()?
+         * This field is convenient for things like password fields.
+         */
+        bool serialize = true;
 
         /** If this is a foreign key. */
         Pointer		references = nullptr;

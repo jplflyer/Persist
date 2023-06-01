@@ -236,11 +236,17 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
         Column::Pointer ref = col->getReferences();
         if (ref != nullptr) {
             Table::Pointer refTable = ref->getOurTable().lock();
+            string refPtrName = col->getRefPtrName();
+
+            if (refPtrName.empty()) {
+                refPtrName = firstLower(refTable->getName());
+            }
+
             ofs << endl
-                << "\tstd::shared_ptr<" << refTable->getName() << "> get" << refTable->getName() << "() const"
-                << " { return " << firstLower(refTable->getName()) << "; }" << endl
-                << "\tvoid set" << refTable->getName() << "(std::shared_ptr<" << refTable->getName() << "> ptr)"
-                << " { " << firstLower(refTable->getName()) << " = ptr; }" << endl
+                << "\tstd::shared_ptr<" << refTable->getName() << "> get" << refPtrName << "() const"
+                << " { return " << refPtrName << "; }" << endl
+                << "\tvoid set" << firstUpper(refPtrName) << "(std::shared_ptr<" << refTable->getName() << "> ptr)"
+                << " { " << refPtrName << " = ptr; }" << endl
                 ;
         }
     }
@@ -266,15 +272,24 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
 }
 
 /**
- * This generates the code for foreign key relationships.
+ * This generates the code for foreign key relationships. This is tricky as we can have
+ * more than one ID into the same table. For instance, I have some role-based permissions,
+ * and I have one table with "viewerRoleId" and "posterRoleId". If you only have a single
+ * link to the Role table, you could call the column "Role::Pointer role". But clearly that
+ * doesn't work if you have more than one.
  */
 void CodeGenerator_CPP::generateH_FK_Storage(ostream &ofs, DataModel::Table &table) {
     for (const Column::Pointer &col: table.getColumns()) {
         Column::Pointer ref = col->getReferences();
         if (ref != nullptr) {
             Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "\tstd::shared_ptr<" << refTable->getName() << "> " << firstLower(refTable->getName())
-                << " = nullptr;" << endl;
+            string refPtrName = col->getRefPtrName();
+
+            if (refPtrName.empty()) {
+                refPtrName = firstLower(refTable->getName());
+            }
+
+            ofs << "\tstd::shared_ptr<" << refTable->getName() << "> " << refPtrName << " = nullptr;" << endl;
         }
     }
 
@@ -346,9 +361,11 @@ CodeGenerator_CPP::generateCPP(Table &table) {
            ;
 
     for (const Column::Pointer &column: table.getColumns()) {
-        ofs << "    " << column->getName() << " = " << cTypeFor(column->getDataType()) << "Value("
-            << "json, \"" << column->getName() << "\");"
-            << endl ;
+        if (column->getSerialize()) {
+            ofs << "    " << column->getName() << " = " << cTypeFor(column->getDataType()) << "Value("
+                << "json, \"" << column->getName() << "\");"
+                << endl ;
+        }
     }
 
     ofs << "}" << endl << endl;
@@ -364,7 +381,9 @@ CodeGenerator_CPP::generateCPP(Table &table) {
            ;
 
     for (const Column::Pointer &column: table.getColumns()) {
-        ofs << "    json[\"" << column->getName() << "\"] = " << column->getName() << ";\n";
+        if (column->getSerialize()) {
+            ofs << "    json[\"" << column->getName() << "\"] = " << column->getName() << ";\n";
+        }
     }
 
     ofs << "    return json;\n"

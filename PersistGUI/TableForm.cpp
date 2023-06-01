@@ -112,6 +112,7 @@ void TableForm::on_columnsTable_cellDoubleClicked(int row, int ) {
     bool wantReferences = referenceTable != nullptr;
 
     ui->nameTF->setText(QString::fromStdString(selectedColumn->getName()));
+    ui->referencePtrTF->setText(QString::fromStdString(selectedColumn->getRefPtrName()));
     ui->dbNameTF->setText(QString::fromStdString(selectedColumn->getDbName()));
 
     ui->primaryKeyCB->setChecked(selectedColumn->getIsPrimaryKey());
@@ -119,6 +120,7 @@ void TableForm::on_columnsTable_cellDoubleClicked(int row, int ) {
     ui->indexCB->setChecked(selectedColumn->getWantIndex());
     ui->finderCB->setChecked(selectedColumn->getWantFinder());
     ui->foreignKeyCB->setChecked(wantReferences);
+    ui->serializeCB->setChecked(selectedColumn->getSerialize());
 
     std::vector<DataTypePair> & dataTypes = allDataTypes();
     for (size_t index = 0; index < dataTypes.size(); ++index) {
@@ -137,6 +139,8 @@ void TableForm::on_columnsTable_cellDoubleClicked(int row, int ) {
     ui->referenceL->setVisible(wantReferences);
     ui->referenceTableCB->setVisible(wantReferences);
     ui->referenceColumnCB->setVisible(wantReferences);
+    ui->referencePtrL->setVisible(wantReferences);
+    ui->referencePtrTF->setVisible(wantReferences);
 
     if (wantReferences) {
         showPossibleReferenceTables(referenceTable);
@@ -183,6 +187,14 @@ void TableForm::on_nameTF_textChanged(const QString &)
 {
     if (selectedColumn != nullptr) {
         selectedColumn->setName(ui->nameTF->text().toStdString());
+        displayColumn(selectedColumnIndex, *selectedColumn);
+        model.markDirty();
+    }
+}
+
+void TableForm::on_referencePtrTF_textChanged(const QString &) {
+    if (selectedColumn != nullptr) {
+        selectedColumn->setRefPtrName(ui->referencePtrTF->text().toStdString());
         displayColumn(selectedColumnIndex, *selectedColumn);
         model.markDirty();
     }
@@ -263,6 +275,17 @@ void TableForm::on_finderCB_stateChanged(int)
 }
 
 /**
+ * Toggled Serialize.
+ */
+void TableForm::on_serializeCB_stateChanged(int) {
+    if (selectedColumn != nullptr) {
+        selectedColumn->setSerialize(ui->serializeCB->isChecked());
+        displayColumn(selectedColumnIndex, *selectedColumn);
+        model.markDirty();
+    }
+}
+
+/**
  * Changed ths Is Foreign Key checkbox.
  */
 void TableForm::on_foreignKeyCB_stateChanged(int)
@@ -273,6 +296,8 @@ void TableForm::on_foreignKeyCB_stateChanged(int)
         ui->referenceL->setVisible(wantReferences);
         ui->referenceTableCB->setVisible(wantReferences);
         ui->referenceColumnCB->setVisible(wantReferences);
+        ui->referencePtrL->setVisible(wantReferences);
+        ui->referencePtrTF->setVisible(wantReferences);
 
         if (wantReferences) {
             ui->referenceColumnCB->clear();
@@ -287,15 +312,6 @@ void TableForm::on_foreignKeyCB_stateChanged(int)
         model.markDirty();
     }
 
-}
-
-void TableForm::on_lengthTF_textChanged(const QString &)
-{
-    if (selectedColumn != nullptr) {
-        selectedColumn->setLength(ShowLib::stol(ui->lengthTF->text().toStdString()));
-        displayColumn(selectedColumnIndex, *selectedColumn);
-        model.markDirty();
-    }
 }
 
 void TableForm::on_precisionTF_textChanged(const QString &)
@@ -346,6 +362,19 @@ void TableForm::on_referenceColumnCB_currentIndexChanged(int) {
         }
     }
 }
+
+/**
+ * They changed the name of the reference column.
+ */
+void TableForm::on_lengthTF_textChanged(const QString &)
+{
+    if (selectedColumn != nullptr) {
+        selectedColumn->setLength(ShowLib::stol(ui->lengthTF->text().toStdString()));
+        displayColumn(selectedColumnIndex, *selectedColumn);
+        model.markDirty();
+    }
+}
+
 
 void TableForm::showLength() {
     if (selectedColumn != nullptr) {
@@ -416,3 +445,5 @@ void TableForm::showPossibleReferenceColumns(Table & tPtr, Column::Pointer selec
         ++currentColumnIndex;
     }
 }
+
+

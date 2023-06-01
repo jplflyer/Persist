@@ -46,8 +46,12 @@ private slots:
     void on_scaleTF_textChanged(const QString &arg1);
     void on_referenceTableCB_currentIndexChanged(int index);
     void on_referenceColumnCB_currentIndexChanged(int index);
+    void on_referencePtrTF_textChanged(const QString &arg1);
 
     void on_finderCB_stateChanged(int arg1);
+
+    void on_serializeCB_stateChanged(int arg1);
+
 
 private:
     Ui::TableForm *ui;

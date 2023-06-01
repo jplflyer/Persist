@@ -324,6 +324,7 @@ DataModel::Column::~Column() {
 bool
 DataModel::Column::deepEquals(const DataModel::Column &orig) const {
     return (name == orig.name
+        && refPtrName == orig.refPtrName
         && dbName == orig.dbName
         && dataType == orig.dataType
         && dataLength == orig.dataLength
@@ -342,6 +343,7 @@ DataModel::Column::deepEquals(const DataModel::Column &orig) const {
 void
 DataModel::Column::fromJSON(const JSON &json) {
     name = stringValue(json, "name");
+    refPtrName = stringValue(json, "refPtrName");
     dbName = camelToLower(stringValue(json, "dbName"));
     dataType = toDataType(stringValue(json, "dataType"));
     dataLength = intValue(json, "length");
@@ -354,6 +356,7 @@ DataModel::Column::fromJSON(const JSON &json) {
     isPrimaryKey = boolValue(json, "isPrimaryKey");
     wantIndex = boolValue(json, "wantIndex");
     wantFinder = boolValue(json, "wantFinder");
+    serialize = boolValue(json, "serialize", true);
 }
 
 /**
@@ -364,6 +367,8 @@ JSON  DataModel::Column::toJSON() const {
     json["name"] = name;
     json["dbName"] = dbName;
     json["dataType"] = ::toString(dataType);
+
+    setStringValue(json, "refPtrName", refPtrName);
     setLongValue(json, "length", dataLength);
     setLongValue(json, "precisionP", precisionP);
     setLongValue(json, "precisionS", precisionS);
@@ -378,12 +383,9 @@ JSON  DataModel::Column::toJSON() const {
 
     json["nullable"] = nullable;
     json["isPrimaryKey"] = isPrimaryKey;
-    if (wantIndex) {
-        json["wantIndex"] = wantIndex;
-    }
-    if (wantFinder) {
-        json["wantFinder"] = wantFinder;
-    }
+    json["wantIndex"] = wantIndex;
+    json["wantFinder"] = wantFinder;
+    json["serialize"] = serialize;
 
     return json;
 }
@@ -432,6 +434,10 @@ DataModel::Column::flagsStr() const {
     }
     if (wantIndex) {
         retVal = retVal + delim + "INDEX";
+        delim = " ";
+    }
+    if (serialize) {
+        retVal += delim + "SERIALIZE";
         delim = " ";
     }
 

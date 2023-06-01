@@ -91,10 +91,42 @@
            </property>
           </widget>
          </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="datatypeCB"/>
+         </item>
+         <item row="7" column="1">
+          <widget class="QWidget" name="referenceContainer" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QComboBox" name="referenceTableCB"/>
+            </item>
+            <item>
+             <widget class="QComboBox" name="referenceColumnCB"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="dbNameTF"/>
+         </item>
          <item row="1" column="0">
           <widget class="QLabel" name="dbNameL">
            <property name="text">
             <string>Database Column Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="lengthL">
+           <property name="text">
+            <string>Length</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="datatypeL">
+           <property name="text">
+            <string>Datatype</string>
            </property>
           </widget>
          </item>
@@ -107,39 +139,6 @@
          </item>
          <item row="0" column="1">
           <widget class="QLineEdit" name="nameTF"/>
-         </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="lengthL">
-           <property name="text">
-            <string>Length</string>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="0">
-          <widget class="QLabel" name="scaleL">
-           <property name="text">
-            <string>Scale</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="dbNameTF"/>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="datatypeL">
-           <property name="text">
-            <string>Datatype</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLineEdit" name="lengthTF"/>
-         </item>
-         <item row="6" column="1">
-          <widget class="QLineEdit" name="scaleTF"/>
-         </item>
-         <item row="2" column="1">
-          <widget class="QComboBox" name="datatypeCB"/>
          </item>
          <item row="3" column="0" colspan="2">
           <widget class="QWidget" name="flagsContainer" native="true">
@@ -173,6 +172,13 @@
              </widget>
             </item>
             <item>
+             <widget class="QCheckBox" name="serializeCB">
+              <property name="text">
+               <string>Serialize</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QCheckBox" name="finderCB">
               <property name="text">
                <string>Finder</string>
@@ -182,6 +188,9 @@
            </layout>
           </widget>
          </item>
+         <item row="6" column="1">
+          <widget class="QLineEdit" name="scaleTF"/>
+         </item>
          <item row="7" column="0">
           <widget class="QLabel" name="referenceL">
            <property name="text">
@@ -189,17 +198,25 @@
            </property>
           </widget>
          </item>
-         <item row="7" column="1">
-          <widget class="QWidget" name="referenceContainer" native="true">
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <item>
-             <widget class="QComboBox" name="referenceTableCB"/>
-            </item>
-            <item>
-             <widget class="QComboBox" name="referenceColumnCB"/>
-            </item>
-           </layout>
+         <item row="6" column="0">
+          <widget class="QLabel" name="scaleL">
+           <property name="text">
+            <string>Scale</string>
+           </property>
           </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="lengthTF"/>
+         </item>
+         <item row="8" column="0">
+          <widget class="QLabel" name="referencePtrL">
+           <property name="text">
+            <string>Foreign Pointer Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QLineEdit" name="referencePtrTF"/>
          </item>
         </layout>
        </widget>
