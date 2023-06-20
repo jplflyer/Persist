@@ -20,6 +20,8 @@ private:
     void generateH(DataModel::Table &);
     void generateCPP(DataModel::Table &);
     void generateUtilities();
+    void generateH_ResolveReferences(std::ostream &, DataModel::Table::Pointer from, DataModel::Table::Pointer to);
+    void generateC_ResolveReferences(std::ostream &, DataModel::Table::Pointer from, DataModel::Table::Pointer to);
 
     void generateH_ForwardReferences(std::ostream &, DataModel::Table &);
     void generateH_FK_Access(std::ostream &, DataModel::Table &);

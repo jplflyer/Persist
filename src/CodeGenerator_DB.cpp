@@ -162,7 +162,13 @@ CodeGenerator_DB::generateH_FromForeignKeys(Table &table, std::ostream &ofs, con
         Column::Pointer fk = column->getReferences();
         if (fk != nullptr) {
             std::shared_ptr<Table> refTable = fk->getOurTable().lock();
-            ofs << "\tstatic " << baseClassName << "::Vector readAll_For" << refTable->getName() << "(pqxx::connection &, int);"  << endl;
+            string refPtrName = firstUpper(column->getRefPtrName());
+
+            if (refPtrName.empty()) {
+                refPtrName = firstUpper(refTable->getName());
+            }
+
+            ofs << "\tstatic " << baseClassName << "::Vector readAll_For" << refPtrName << "(pqxx::connection &, int);"  << endl;
         }
     }
 }
@@ -345,7 +351,13 @@ CodeGenerator_DB::generateCPP_FromForeignKeys(Table &table, std::ostream &ofs, c
         Column::Pointer fk = column->getReferences();
         if (fk != nullptr) {
             std::shared_ptr<Table> refTable = fk->getOurTable().lock();
-            ofs << baseClassName << "::Vector " << myClassName << "::readAll_For" << refTable->getName()
+            string refPtrName = firstUpper(column->getRefPtrName());
+
+            if (refPtrName.empty()) {
+                refPtrName = firstUpper(refTable->getName());
+            }
+
+            ofs << baseClassName << "::Vector " << myClassName << "::readAll_For" << refPtrName
                 << "(pqxx::connection &conn, int " << column->getName() << ") {"  << endl
                 << "\tpqxx::work work(conn);" << endl
                 << "\tpqxx::result results = work.exec( string{\"SELECT \"} + QUERY_LIST + \" FROM " << table.getDbName()

@@ -632,3 +632,22 @@ DataModel::Table::ourMapTableReference(const Table &other) const {
     }
     return nullptr;
 }
+
+/**
+ * Find any columns that reference this other table.
+ */
+const DataModel::Column::Vector DataModel::Table::getAllReferencesToTable(const Table &other) const {
+    Column::Vector vec;
+
+    for (const Column::Pointer &col: columns) {
+        Column::Pointer ref = col->getReferences();
+        if (ref != nullptr) {
+            Table::Pointer refTable = ref->getOurTable().lock();
+            if (refTable->getName() == other.getName()) {
+                vec.push_back(col);
+            }
+        }
+    }
+
+    return vec;
+}

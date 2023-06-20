@@ -225,6 +225,7 @@ public:
         void sortColumns();
 
         bool looksLikeMapTableFor(const Table &) const;
+        const Column::Vector getAllReferencesToTable(const Table &) const;
         const Column::Pointer otherMapTableReference(const Table &) const;
         const Column::Pointer ourMapTableReference(const Table &) const;
 

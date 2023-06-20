@@ -79,7 +79,7 @@ CodeGenerator_CPP::generateH(Table &table) {
         << "#include <vector>" << endl
         << "#include <memory>" << endl
         << endl
-            ;
+           ;
 
     if (wantJSON) {
         ofs << "#include <showlib/JSONSerializable.h>" << endl;
@@ -94,7 +94,7 @@ CodeGenerator_CPP::generateH(Table &table) {
     ofs << "class " << name << ";" << endl
         << endl
         << "class " << myClassName
-          ;
+           ;
 
     if (wantJSON) {
         ofs << ": public ShowLib::JSONSerializable";
@@ -127,16 +127,16 @@ CodeGenerator_CPP::generateH(Table &table) {
         string upperName = firstUpper(column->getName());
         string cType = cTypeFor(column->getDataType());
         bool isStr = isString(cType);
-        string constness { isStr ? "const " : "" };
-        string refness { isStr ? " &" : "" };
-        string ns { isStr ? "std::" : "" };
+        string constness = isStr ? "const " : "";
+        string refness = isStr ? " &" : "";
+        string ns = isStr ? "std::" : "";
 
         ofs << "    " << constness << ns << cType << refness << " get" << upperName
             << "() const { return " << column->getName() << "; }" << endl;
 
         ofs << "    " << myClassName << " & set" << upperName
-            << " (" << constness << ns << cType << refness << " value)"
-            << " { " << column->getName() << " = value; return *this; }"
+            << " (" << constness << ns << cType << refness << " valueIn)"
+            << " { " << column->getName() << " = valueIn; return *this; }"
             << endl;
     }
     generateH_FK_Access(ofs, table);
@@ -159,7 +159,7 @@ CodeGenerator_CPP::generateH(Table &table) {
     for (const Column::Pointer &column: table.getColumns()) {
         string cType = cTypeFor(column->getDataType());
         bool isStr = isString(cType);
-        string ns { isStr ? "std::" : "" };
+        string ns = isStr ? "std::" : "";
 
         ofs << "    " << ns << cType << " " << column->getName();
         if (isInt(cType)) {
@@ -230,11 +230,14 @@ CodeGenerator_CPP::generateH_ForwardReferences(std::ostream &ofs, DataModel::Tab
  * tables that have FKs to us.
  */
 void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &table) {
-
-    ofs << endl << "\t// Foreign relationships." << endl;
+    bool printedPrompt = false;
     for (const Column::Pointer &col: table.getColumns()) {
         Column::Pointer ref = col->getReferences();
         if (ref != nullptr) {
+            if (!printedPrompt) {
+                printedPrompt = true;
+                ofs << endl << "\t// Foreign relationships." << endl;
+            }
             Table::Pointer refTable = ref->getOurTable().lock();
             string refPtrName = col->getRefPtrName();
 
@@ -242,12 +245,11 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
                 refPtrName = firstLower(refTable->getName());
             }
 
-            ofs << endl
-                << "\tstd::shared_ptr<" << refTable->getName() << "> get" << refPtrName << "() const"
+            ofs << "\tstd::shared_ptr<" << refTable->getName() << "> get" << firstUpper(refPtrName) << "() const"
                 << " { return " << refPtrName << "; }" << endl
-                << "\tvoid set" << firstUpper(refPtrName) << "(std::shared_ptr<" << refTable->getName() << "> ptr)"
+                << "\tvoid set" << firstUpper(refPtrName) << "(std::shared_ptr<" << firstUpper(refTable->getName()) << "> ptr)"
                 << " { " << refPtrName << " = ptr; }" << endl
-                ;
+                   ;
         }
     }
 
@@ -255,17 +257,26 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
     // This is for things that have FK relationships to us. We'll store
     // a vector and put getFoos and addFoo method.
     //----------------------------------------------------------------------
+    printedPrompt = false;
     for (const Table::Pointer & otherTable: model.getTables()) {
-        Column::Pointer ref = otherTable->ourMapTableReference(table);
-        if (ref != nullptr) {
-            Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << endl
-                << "	const ShowLib::JSONSerializableVector<" << refTable->getName() << "> & "
-                << "get" << refTable->getName() << "s() const { return "
-                << firstLower(refTable->getName()) << "Vector; }" << endl
-                << "	void add" << refTable->getName() << "(const std::shared_ptr<" << refTable->getName() << ">);" << endl
-                << "	void remove" << refTable->getName() << "(const std::shared_ptr<" << refTable->getName() << ">);" << endl
-                << "	void removeAll" << refTable->getName() << "();" << endl
+        for (const Column::Pointer & col: otherTable->getAllReferencesToTable(table)) {
+            Column::Pointer ref = col->getReferences();
+            if (!printedPrompt) {
+                ofs << "\n    // Relationships to us.\n";
+                printedPrompt = true;
+            }
+
+            string name = ShowLib::firstUpper(col->getRefPtrName());
+            if (name.empty()) {
+                name = ShowLib::firstUpper(otherTable->getName());
+            }
+            string nameL = ShowLib::firstLower(name);
+
+            ofs << "	const ShowLib::JSONSerializableVector<" << otherTable->getName() << "> & "
+                << "get" << ShowLib::firstUpper(name) << "s() const { return " << nameL << "Vector; }" << endl
+                << "	void add"       << name << "(const std::shared_ptr<" << otherTable->getName() << ">);" << endl
+                << "	void remove"    << name << "(const std::shared_ptr<" << otherTable->getName() << ">);" << endl
+                << "	void removeAll" << name << "();" << endl
                    ;
         }
     }
@@ -293,12 +304,21 @@ void CodeGenerator_CPP::generateH_FK_Storage(ostream &ofs, DataModel::Table &tab
         }
     }
 
+    // This part looks for references to us.
     for (const Table::Pointer & otherTable: model.getTables()) {
-        Column::Pointer ref = otherTable->ourMapTableReference(table);
-        if (ref != nullptr) {
-            Table::Pointer refTable = ref->getOurTable().lock();
-            ofs << "	ShowLib::JSONSerializableVector<" << refTable->getName() << "> " << firstLower(refTable->getName())
-                << "Vector;" << endl;
+        for (const Column::Pointer & col: otherTable->getColumns()) {
+            Column::Pointer ref = col->getReferences();
+            if (ref != nullptr) {
+                Table::Pointer refTable = ref->getOurTable().lock();
+                if (refTable->getName() == table.getName()) {
+                    // Okay, this other table has a reference to us. Maybe more than one.
+                    string name = col->getRefPtrName();
+                    if (name.empty()) {
+                        name = otherTable->getName();
+                    }
+                    ofs << "	ShowLib::JSONSerializableVector<" << otherTable->getName() << "> " << firstLower(name) << "Vector;" << endl;
+                }
+            }
         }
     }
 }
@@ -469,20 +489,26 @@ CodeGenerator_CPP::generateC_CommonIncludes(std::ostream &ofs, DataModel::Table 
  */
 void
 CodeGenerator_CPP::generateC_FK_Add(
-    std::ostream &ofs,
-    DataModel::Table & table,
-    DataModel::Table & refTable,
-    DataModel::Column & refColumn)
+        std::ostream &ofs,
+        DataModel::Table & table,
+        DataModel::Table & refTable,
+        DataModel::Column & refColumn)
 {
     string myCol = ShowLib::firstUpper(refColumn.getReferences()->getName());
     string theirCol = ShowLib::firstUpper(refColumn.getName());
     string refName = refTable.getName();
-    string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
+
+    string name = ShowLib::firstUpper(refColumn.getRefPtrName());
+    if (name.empty()) {
+        name = ShowLib::firstUpper(refTable.getName());
+    }
+    string nameL = ShowLib::firstLower(name);
+    string vecName = nameL + "Vector";
 
     ofs << endl
         << "void " << table.getName() << "_Base::"
-        << "add" << refTable.getName() << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
-        << "    int thisId = obj->get" << myCol << "();" << endl
+        << "add" << name << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
+        << "    int thisId = obj->get" << theirCol << "();" << endl
         << "    ShowLib::addIfNot(" << vecName << ", obj, [=](" << refName << "::Pointer ptr){ return ptr->get" << theirCol << "() == thisId; });" << endl
         << "}" << endl
            ;
@@ -506,12 +532,18 @@ CodeGenerator_CPP::generateC_FK_Remove(
     string myCol = ShowLib::firstUpper(refColumn.getReferences()->getName());
     string theirCol = ShowLib::firstUpper(refColumn.getName());
     string refName = refTable.getName();
-    string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
+
+    string name = ShowLib::firstUpper(refColumn.getRefPtrName());
+    if (name.empty()) {
+        name = ShowLib::firstUpper(refTable.getName());
+    }
+    string nameL = ShowLib::firstLower(name);
+    string vecName = nameL + "Vector";
 
     ofs << endl
         << "void " << table.getName() << "_Base::"
-        << "remove" << refTable.getName() << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
-        << "    int thisId = obj->get" << myCol << "();" << endl
+        << "remove" << name << "(const std::shared_ptr<" << refTable.getName() << "> obj) {" << endl
+        << "    int thisId = obj->get" << theirCol << "();" << endl
         << "    ShowLib::eraseIf(" << vecName << ", [=](" << refName << "::Pointer ptr){ return ptr->get" << theirCol << "() == thisId; });" << endl
         << "}" << endl
            ;
@@ -525,14 +557,20 @@ CodeGenerator_CPP::generateC_FK_RemoveAll(
      std::ostream &ofs,
      DataModel::Table & table,
      DataModel::Table & refTable,
-     DataModel::Column &)
+     DataModel::Column &refColumn)
 {
     string refName = refTable.getName();
-    string vecName = ShowLib::firstLower(refTable.getName()) + "Vector";
+
+    string name = ShowLib::firstUpper(refColumn.getRefPtrName());
+    if (name.empty()) {
+        name = ShowLib::firstUpper(refTable.getName());
+    }
+    string nameL = ShowLib::firstLower(name);
+    string vecName = nameL + "Vector";
 
     ofs << endl
         << "void " << table.getName() << "_Base::"
-        << "removeAll" << refTable.getName() << "() {" << endl
+        << "removeAll" << name << "() {" << endl
         << "    " << vecName << ".clear();" << endl
         << "}" << endl
     ;
@@ -662,65 +700,122 @@ CodeGenerator_CPP::generateUtilities() {
     for (const Table::Pointer &table: model.getTables()) {
         for (const Column::Pointer &column: table->getColumns()) {
             const Column::Pointer ref = column->getReferences();
+
+            // If this is non-null, we have at least one relationship between
+            // these two tables.
             if (ref != nullptr) {
                 Table::Pointer refTable = ref->getOurTable().lock();
-                string fromGetter = string{"get"} + ShowLib::firstUpper(column->getName());
-                string toGetter = string{"get"} + ShowLib::firstUpper(ref->getName());
-                string fromSetter = string{"set"} + refTable->getName();
-                string toAdder = string{"add"} + table->getName();
-
-                // We do this bidirection so you don't need to remember which way.
-                hOutput
-                        << "void resolveReferences("
-                        << table->getName() << "::Vector &, "
-                        << refTable->getName() << "::Vector &);"
-                        << endl
-
-                        << "void resolveReferences("
-                        << refTable->getName() << "::Vector &vecA, "
-                        << table->getName() << "::Vector &vecB);" << endl
-
-                        << "void resolveReferences("
-                        << refTable->getName() << "::Pointer &, "
-                        << table->getName() << "::Vector &);" << endl
-                        << endl ;
-
-                // And we do a version that takes the single object (with the PK)
-                // and a vector of possible children.
-
-                cppOutput << "void resolveReferences("
-                        << table->getName() << "::Vector &vecA, "
-                        << refTable->getName() << "::Vector &vecB) {" << endl
-                        << "	for (const " << table->getName() << "::Pointer &outer: vecA) {" << endl
-                        << "		for (const " << refTable->getName() << "::Pointer &inner: vecB) {" << endl
-                        << "			if (outer->" << fromGetter << "() == inner->" << toGetter << "()) {" << endl
-                        << "				outer->" << fromSetter << "(inner);" << endl
-                        << "				inner->" << toAdder << "(outer);" << endl
-                        << "			}" << endl
-                        << "		}" << endl
-                        << "	}" << endl
-                        << "}" << endl << endl
-                           ;
-
-                cppOutput << "void resolveReferences("
-                          << refTable->getName() << "::Vector &vecA, " << table->getName() << "::Vector &vecB) {" << endl
-                          << "	resolveReferences(vecB, vecA); " << endl
-                          << "}" << endl << endl;
-
-                cppOutput << "void resolveReferences("
-                        << refTable->getName() << "::Pointer &parent, "
-                        << table->getName() << "::Vector &vec) {" << endl
-                        << "	for (const " << table->getName() << "::Pointer &child: vec) {" << endl
-                        << "		if (child->" << fromGetter << "() == parent->" << toGetter << "()) {" << endl
-                        << "			child->" << fromSetter << "(parent);" << endl
-                        << "			parent->" << toAdder << "(child);" << endl
-                        << "		}" << endl
-                        << "	}" << endl
-                           ;
-
-                cppOutput << "}" << endl << endl;
-
+                generateH_ResolveReferences(hOutput, table, refTable);
+                generateC_ResolveReferences(cppOutput, table, refTable);
+                break; // Only do once per pair. And this is going to break down if we point both directions.
             }
         }
     }
+}
+
+
+/**
+ * See the lengthy comments for generateC_ResolveReferences(). This is the .h version.
+ */
+void CodeGenerator_CPP::generateH_ResolveReferences(
+        std::ostream &stream,
+        DataModel::Table::Pointer from,
+        DataModel::Table::Pointer to)
+{
+    stream
+            << "void resolveReferences(" << from->getName() << "::Vector &, " << to->getName() << "::Vector &);\n"
+            << "void resolveReferences(" << to->getName() << "::Vector &vecA, " << from->getName() << "::Vector &vecB);\n"
+
+            << "// This version takes a pointed-to table row and finds all references to it.\n"
+            << "void resolveReferences(" << to->getName() << "::Pointer &, " << from->getName() << "::Vector &);\n"
+            << "\n" ;
+}
+
+/**
+ * Creates resolveReferences() methods.
+ *
+ * Foreign key relationships are tricky. Imagine we're doing a web forum.
+ * website. We have forums, and forums have threads, and those threads have
+ * posts by multiple people. We might want to know who created the thread
+ * and who made the most recent post. So we have createdById and updatedById,
+ * and those are memberIds. Thus, the ForumThread table has two pointers to
+ * the Member table.
+ *
+ * So we create two methods:
+ *
+ *      void resolveReferences(ForumThread::Vector &, Member::Vector &);
+ *      void resolveReferences(Member::Vector &, ForumThread::Vector &);
+ *
+ * These two methods are equivalent, and we can write the second one by calling
+ * the first one with the arguments reversed.
+ */
+void CodeGenerator_CPP::generateC_ResolveReferences(
+        std::ostream &stream,
+        DataModel::Table::Pointer from,
+        DataModel::Table::Pointer to)
+{
+    stream << "void resolveReferences("
+           << from->getName() << "::Vector &vecA, " << to->getName() << "::Vector &vecB) {\n"
+           << "    for (const " << from->getName() << "::Pointer &outer: vecA) {" << endl
+           << "        for (const " << to->getName() << "::Pointer &inner: vecB) {" << endl
+           ;
+
+    for (const Column::Pointer &column: from->getAllReferencesToTable(*to)) {
+        const Column::Pointer ref = column->getReferences();
+        string refName = ShowLib::firstUpper(column->getRefPtrName());
+        string outerAddName = refName;
+        if (refName.empty()) {
+            refName = ShowLib::firstUpper(from->getName());
+            outerAddName = ShowLib::firstUpper(to->getName());
+        }
+        string refNameL = ShowLib::firstLower(refName);
+
+        // At this point, this column in the from table points to the to table.
+        // For instance, forumThread->createdById -> member->memberId.
+        // So we set up a compare for the current record combination.
+        stream << "            if (outer->get" << ShowLib::firstUpper(column->getName()) << "() == "
+               <<"inner->get" << ShowLib::firstUpper(ref->getName()) << "() ) {\n"
+              << "                outer->set" << outerAddName << "(inner);\n"
+              << "                inner->add" << ShowLib::firstUpper(refName) << "(outer);\n"
+              << "            }\n"
+                 ;
+
+    }
+
+    stream << "        }\n"
+           << "    }\n"
+           << "}\n\n"
+          ;
+
+    stream << "/** This is a flip of the other direction. */\n"
+           << "void resolveReferences("
+           << to->getName() << "::Vector &vecA, " << from->getName() << "::Vector &vecB) {\n"
+           << "	resolveReferences(vecB, vecA);\n"
+           << "}\n\n";
+
+/*
+
+           << "			if (outer->" << fromGetter << "() == inner->" << toGetter << "()) {" << endl
+           << "				outer->" << toSetter << "(inner); // Hmm." << endl
+           << "				inner->" << toAdder << "(outer);" << endl
+           << "			}" << endl
+           << "		}" << endl
+           << "	}" << endl
+           << "}" << endl << endl
+               ;
+
+    stream << "void resolveReferences("
+           << refTable->getName() << "::Pointer &parent, "
+           << table->getName() << "::Vector &vec) {" << endl
+           << "	for (const " << table->getName() << "::Pointer &child: vec) {" << endl
+           << "		if (child->" << fromGetter << "() == parent->" << toGetter << "()) {" << endl
+           << "			child->" << fromSetter << "(parent);" << endl
+           << "			parent->" << toAdder << "(child);" << endl
+           << "		}" << endl
+           << "	}" << endl
+               ;
+
+    stream << "}" << endl << endl;
+*/
+
 }
