@@ -1,16 +1,13 @@
 #include <algorithm>
 #include <mutex>
 
+#include <showlib/CommonUsing.h>
 #include <showlib/StringUtils.h>
 
 #include "DataModel.h"
 
 using namespace ShowLib;
 
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::string;
 using Table = DataModel::Table;
 using Column = DataModel::Column;
 using DataType = DataModel::Column::DataType;
@@ -325,6 +322,7 @@ bool
 DataModel::Column::deepEquals(const DataModel::Column &orig) const {
     return (name == orig.name
         && refPtrName == orig.refPtrName
+        && reversePtrName == orig.reversePtrName
         && dbName == orig.dbName
         && dataType == orig.dataType
         && dataLength == orig.dataLength
@@ -344,6 +342,7 @@ void
 DataModel::Column::fromJSON(const JSON &json) {
     name = stringValue(json, "name");
     refPtrName = stringValue(json, "refPtrName");
+    reversePtrName = stringValue(json, "reversePtrName");
     dbName = camelToLower(stringValue(json, "dbName"));
     dataType = toDataType(stringValue(json, "dataType"));
     dataLength = intValue(json, "length");
@@ -369,6 +368,7 @@ JSON  DataModel::Column::toJSON() const {
     json["dataType"] = ::toString(dataType);
 
     setStringValue(json, "refPtrName", refPtrName);
+    setStringValue(json, "reversePtrName", reversePtrName);
     setLongValue(json, "length", dataLength);
     setLongValue(json, "precisionP", precisionP);
     setLongValue(json, "precisionS", precisionS);

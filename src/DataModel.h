@@ -98,6 +98,7 @@ public:
 
         const std::string getName() const { return name; }
         const std::string getRefPtrName() const { return refPtrName; }
+        const std::string getReversePtrName() const { return reversePtrName; }
         const std::string getDbName() const { return dbName; }
         const std::string getReferenceStr() const { return referenceStr; }
         DataType getDataType() const { return dataType; }
@@ -119,6 +120,7 @@ public:
 
         Column & setName(const std::string &value) { name = value; return *this; }
         Column & setRefPtrName(const std::string &value) { refPtrName = value; return *this; }
+        Column & setReversePtrName(const std::string &value) { reversePtrName = value; return *this; }
         Column & setDbName(const std::string &value) { dbName = value; return *this; }
 
         Column & setReferenceStr(const std::string &value) {
@@ -155,6 +157,12 @@ public:
          * we don't have two references to the same table.
          */
         std::string	refPtrName;
+
+        /**
+         * If this is a foreign key, this is the name used by the other table
+         * to point back to us.
+         */
+        std::string reversePtrName;
 
         /** This is the column name */
         std::string	dbName;

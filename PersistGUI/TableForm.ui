@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>831</width>
-    <height>640</height>
+    <height>715</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -81,19 +81,6 @@
       <item>
        <widget class="QWidget" name="colContainer" native="true">
         <layout class="QGridLayout" name="gridLayout">
-         <item row="5" column="1">
-          <widget class="QLineEdit" name="precisionTF"/>
-         </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="precisionL">
-           <property name="text">
-            <string>Precision</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QComboBox" name="datatypeCB"/>
-         </item>
          <item row="7" column="1">
           <widget class="QWidget" name="referenceContainer" native="true">
            <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -106,9 +93,6 @@
            </layout>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="dbNameTF"/>
-         </item>
          <item row="1" column="0">
           <widget class="QLabel" name="dbNameL">
            <property name="text">
@@ -116,12 +100,11 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="lengthL">
-           <property name="text">
-            <string>Length</string>
-           </property>
-          </widget>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="lengthTF"/>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="datatypeCB"/>
          </item>
          <item row="2" column="0">
           <widget class="QLabel" name="datatypeL">
@@ -130,15 +113,22 @@
            </property>
           </widget>
          </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="precisionL">
+           <property name="text">
+            <string>Precision</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLineEdit" name="scaleTF"/>
+         </item>
          <item row="0" column="0">
           <widget class="QLabel" name="nameL">
            <property name="text">
             <string>Name</string>
            </property>
           </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="nameTF"/>
          </item>
          <item row="3" column="0" colspan="2">
           <widget class="QWidget" name="flagsContainer" native="true">
@@ -188,8 +178,12 @@
            </layout>
           </widget>
          </item>
-         <item row="6" column="1">
-          <widget class="QLineEdit" name="scaleTF"/>
+         <item row="4" column="0">
+          <widget class="QLabel" name="lengthL">
+           <property name="text">
+            <string>Length</string>
+           </property>
+          </widget>
          </item>
          <item row="7" column="0">
           <widget class="QLabel" name="referenceL">
@@ -198,15 +192,24 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="dbNameTF"/>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="nameTF"/>
+         </item>
+         <item row="8" column="1">
+          <widget class="QLineEdit" name="referencePtrTF"/>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLineEdit" name="precisionTF"/>
+         </item>
          <item row="6" column="0">
           <widget class="QLabel" name="scaleL">
            <property name="text">
             <string>Scale</string>
            </property>
           </widget>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLineEdit" name="lengthTF"/>
          </item>
          <item row="8" column="0">
           <widget class="QLabel" name="referencePtrL">
@@ -215,8 +218,15 @@
            </property>
           </widget>
          </item>
-         <item row="8" column="1">
-          <widget class="QLineEdit" name="referencePtrTF"/>
+         <item row="9" column="1">
+          <widget class="QLineEdit" name="reversePtrNameTF"/>
+         </item>
+         <item row="9" column="0">
+          <widget class="QLabel" name="reversePtrNameL">
+           <property name="text">
+            <string>Remote Name</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>

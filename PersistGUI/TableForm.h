@@ -53,6 +53,8 @@ private slots:
     void on_serializeCB_stateChanged(int arg1);
 
 
+    void on_reversePtrNameTF_textChanged(const QString &arg1);
+
 private:
     Ui::TableForm *ui;
 

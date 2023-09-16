@@ -6,7 +6,7 @@ CONFIG -= qt
 CONFIG += sdk_no_version_check
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
 
-INCLUDEPATH += ./src /usr/local/include
+INCLUDEPATH += ./src
 INCLUDEPATH += example example/gensrc
 
 SOURCES += \

@@ -266,7 +266,7 @@ void CodeGenerator_CPP::generateH_FK_Access(ostream &ofs, DataModel::Table &tabl
                 printedPrompt = true;
             }
 
-            string name = ShowLib::firstUpper(col->getRefPtrName());
+            string name = ShowLib::firstUpper(col->getReversePtrName());
             if (name.empty()) {
                 name = ShowLib::firstUpper(otherTable->getName());
             }
@@ -312,7 +312,7 @@ void CodeGenerator_CPP::generateH_FK_Storage(ostream &ofs, DataModel::Table &tab
                 Table::Pointer refTable = ref->getOurTable().lock();
                 if (refTable->getName() == table.getName()) {
                     // Okay, this other table has a reference to us. Maybe more than one.
-                    string name = col->getRefPtrName();
+                    string name = col->getReversePtrName();
                     if (name.empty()) {
                         name = otherTable->getName();
                     }
@@ -498,7 +498,7 @@ CodeGenerator_CPP::generateC_FK_Add(
     string theirCol = ShowLib::firstUpper(refColumn.getName());
     string refName = refTable.getName();
 
-    string name = ShowLib::firstUpper(refColumn.getRefPtrName());
+    string name = ShowLib::firstUpper(refColumn.getReversePtrName());
     if (name.empty()) {
         name = ShowLib::firstUpper(refTable.getName());
     }
@@ -533,7 +533,7 @@ CodeGenerator_CPP::generateC_FK_Remove(
     string theirCol = ShowLib::firstUpper(refColumn.getName());
     string refName = refTable.getName();
 
-    string name = ShowLib::firstUpper(refColumn.getRefPtrName());
+    string name = ShowLib::firstUpper(refColumn.getReversePtrName());
     if (name.empty()) {
         name = ShowLib::firstUpper(refTable.getName());
     }
@@ -561,7 +561,7 @@ CodeGenerator_CPP::generateC_FK_RemoveAll(
 {
     string refName = refTable.getName();
 
-    string name = ShowLib::firstUpper(refColumn.getRefPtrName());
+    string name = ShowLib::firstUpper(refColumn.getReversePtrName());
     if (name.empty()) {
         name = ShowLib::firstUpper(refTable.getName());
     }
@@ -764,10 +764,17 @@ void CodeGenerator_CPP::generateC_ResolveReferences(
         const Column::Pointer ref = column->getReferences();
         string refName = ShowLib::firstUpper(column->getRefPtrName());
         string outerAddName = refName;
+        string reverseName = ShowLib::firstUpper(column->getReversePtrName());
+
         if (refName.empty()) {
             refName = ShowLib::firstUpper(from->getName());
             outerAddName = ShowLib::firstUpper(to->getName());
         }
+
+        if (reverseName.empty()) {
+            reverseName = ShowLib::firstUpper(from->getName());
+        }
+
         string refNameL = ShowLib::firstLower(refName);
 
         // At this point, this column in the from table points to the to table.
@@ -776,7 +783,7 @@ void CodeGenerator_CPP::generateC_ResolveReferences(
         stream << "            if (outer->get" << ShowLib::firstUpper(column->getName()) << "() == "
                <<"inner->get" << ShowLib::firstUpper(ref->getName()) << "() ) {\n"
               << "                outer->set" << outerAddName << "(inner);\n"
-              << "                inner->add" << ShowLib::firstUpper(refName) << "(outer);\n"
+              << "                inner->add" << ShowLib::firstUpper(reverseName) << "(outer);\n"
               << "            }\n"
                  ;
 

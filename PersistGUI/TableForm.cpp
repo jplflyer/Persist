@@ -113,6 +113,7 @@ void TableForm::on_columnsTable_cellDoubleClicked(int row, int ) {
 
     ui->nameTF->setText(QString::fromStdString(selectedColumn->getName()));
     ui->referencePtrTF->setText(QString::fromStdString(selectedColumn->getRefPtrName()));
+    ui->reversePtrNameTF->setText(QString::fromStdString(selectedColumn->getReversePtrName()));
     ui->dbNameTF->setText(QString::fromStdString(selectedColumn->getDbName()));
 
     ui->primaryKeyCB->setChecked(selectedColumn->getIsPrimaryKey());
@@ -141,6 +142,8 @@ void TableForm::on_columnsTable_cellDoubleClicked(int row, int ) {
     ui->referenceColumnCB->setVisible(wantReferences);
     ui->referencePtrL->setVisible(wantReferences);
     ui->referencePtrTF->setVisible(wantReferences);
+    ui->reversePtrNameL->setVisible(wantReferences);
+    ui->reversePtrNameTF->setVisible(wantReferences);
 
     if (wantReferences) {
         showPossibleReferenceTables(referenceTable);
@@ -195,6 +198,15 @@ void TableForm::on_nameTF_textChanged(const QString &)
 void TableForm::on_referencePtrTF_textChanged(const QString &) {
     if (selectedColumn != nullptr) {
         selectedColumn->setRefPtrName(ui->referencePtrTF->text().toStdString());
+        displayColumn(selectedColumnIndex, *selectedColumn);
+        model.markDirty();
+    }
+}
+
+
+void TableForm::on_reversePtrNameTF_textChanged(const QString &) {
+    if (selectedColumn != nullptr) {
+        selectedColumn->setReversePtrName(ui->reversePtrNameTF->text().toStdString());
         displayColumn(selectedColumnIndex, *selectedColumn);
         model.markDirty();
     }
