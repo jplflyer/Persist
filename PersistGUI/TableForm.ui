@@ -236,6 +236,28 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>columnsTable</tabstop>
+  <tabstop>tableNameTF</tabstop>
+  <tabstop>dbTableNameTF</tabstop>
+  <tabstop>addBtn</tabstop>
+  <tabstop>nameTF</tabstop>
+  <tabstop>dbNameTF</tabstop>
+  <tabstop>datatypeCB</tabstop>
+  <tabstop>primaryKeyCB</tabstop>
+  <tabstop>nullableCB</tabstop>
+  <tabstop>indexCB</tabstop>
+  <tabstop>foreignKeyCB</tabstop>
+  <tabstop>serializeCB</tabstop>
+  <tabstop>finderCB</tabstop>
+  <tabstop>lengthTF</tabstop>
+  <tabstop>precisionTF</tabstop>
+  <tabstop>scaleTF</tabstop>
+  <tabstop>referenceTableCB</tabstop>
+  <tabstop>referenceColumnCB</tabstop>
+  <tabstop>referencePtrTF</tabstop>
+  <tabstop>reversePtrNameTF</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
