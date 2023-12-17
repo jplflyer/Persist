@@ -17,6 +17,7 @@ using std::string;
 
 using Column = DataModel::Column;
 using Table = DataModel::Table;
+using Generator = DataModel::Generator;
 
 using namespace ShowLib;
 
@@ -37,6 +38,26 @@ MainWindow::MainWindow(QWidget *parent)
     QStringList headers {"Class Name", "Database Table Name", "Number of Columns", "Actions"};
     tWidget->setHorizontalHeaderLabels(headers);
     tWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    // Do this in case I save the MainWindow.ui with a different tab selected.
+    ui->tabWidget->setCurrentIndex(0);
+
+    // Connections for menu actions
+    connect(ui->actionNew,   &QAction::triggered,              this, &MainWindow::createNewModel);
+    connect(ui->actionOpen,  &QAction::triggered,              this, &MainWindow::openModel);
+    connect(ui->actionSave,  &QAction::triggered,              this, &MainWindow::saveModel);
+    connect(ui->actionClose, &QAction::triggered,              this, &MainWindow::closeModel);
+
+    // Global fields
+    connect(ui->nameTF,      &QLineEdit::textChanged,          this, &MainWindow::modelNameChanged);
+
+    // The tables
+    connect(ui->tableWidget, &QTableWidget::cellDoubleClicked, this, &MainWindow::tablesDoubleClicked);
+    connect(ui->newTablePB,  &QPushButton::clicked,            this, &MainWindow::createTable);
+
+    // The Generators.
+    connect(ui->generatorsTable, &QTableWidget::cellDoubleClicked, this, &MainWindow::genDoubleClicked);
+    connect(ui->newGeneratorPB,  &QPushButton::clicked,            this, &MainWindow::createGenerator);
 }
 
 /**
@@ -149,7 +170,7 @@ MainWindow::showTables() {
 /**
  * Create a new model.
  */
-void MainWindow::on_actionNew_triggered()
+void MainWindow::createNewModel()
 {
     if (model.getIsDirty()) {
         MainWindow *w = new MainWindow;
@@ -166,7 +187,7 @@ void MainWindow::on_actionNew_triggered()
 /**
  * Open an existing model.
  */
-void MainWindow::on_actionOpen_triggered()
+void MainWindow::openModel()
 {
     QString fName = QFileDialog::getOpenFileName(this, tr("Open Data Model"), ".", tr("JSON files (*.json)"));
     if (fName.length() > 0) {
@@ -184,7 +205,7 @@ void MainWindow::on_actionOpen_triggered()
 /**
  * Save the existing model.
  */
-void MainWindow::on_actionSave_triggered()
+void MainWindow::saveModel()
 {
     if (modelFileName.length() == 0) {
         QString fName = QFileDialog::getSaveFileName(this, tr("Save Data Model"), ".", tr("JSON files (*.json)"));
@@ -203,17 +224,36 @@ void MainWindow::on_actionSave_triggered()
 /**
  * Close the open model.
  */
-void MainWindow::on_actionClose_triggered()
+void MainWindow::closeModel()
 {
 }
 
 void MainWindow::fixButtons() {
 }
 
+//======================================================================
+// Slots related to global fields.
+//======================================================================
+
 /**
- * Double-clicked a row.
+ * Name of the model has been changed.
  */
-void MainWindow::on_tableWidget_cellDoubleClicked(int row, int ) {
+void MainWindow::modelNameChanged(const QString &)
+{
+    string name = ui->nameTF->text().toStdString();
+    if (name.length() > 0 && model.getName() != name) {
+        model.setName(name);
+    }
+}
+
+//======================================================================
+// Slots related to the Tables table.
+//======================================================================
+
+/**
+ * Double-clicked a row in the Tables table. Pop up the TableForm for it.
+ */
+void MainWindow::tablesDoubleClicked(int row, int ) {
     Table::Pointer table = model.getTables()[row];
     for (TableForm *tForm: tableForms) {
         if (tForm->getTable() == table) {
@@ -227,7 +267,7 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int ) {
     TableForm * newForm = new TableForm(model, table);
     tableForms.push_back(newForm);
 
-    connect(newForm, &TableForm::tableChanged, this, &MainWindow::tableChanged);
+    connect(newForm, &TableForm::tableChanged, this, &MainWindow::tableUpdated);
     newForm->show();
 }
 
@@ -235,7 +275,7 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int ) {
  * This table has been changed.
  */
 void
-MainWindow::tableChanged(DataModel::Table::Pointer ) {
+MainWindow::tableUpdated(DataModel::Table::Pointer ) {
     model.sortTables();
     showTables();
 }
@@ -243,7 +283,7 @@ MainWindow::tableChanged(DataModel::Table::Pointer ) {
 /**
  * Create a new table.
  */
-void MainWindow::on_newTablePB_clicked()
+void MainWindow::createTable()
 {
     Table::Pointer newTable = std::make_shared<Table>();
     newTable->setName("NewTable");
@@ -254,14 +294,45 @@ void MainWindow::on_newTablePB_clicked()
     TableForm * newForm = new TableForm(model, newTable);
     tableForms.push_back(newForm);
 
-    connect(newForm, &TableForm::tableChanged, this, &MainWindow::tableChanged);
+    connect(newForm, &TableForm::tableChanged, this, &MainWindow::tableUpdated);
     newForm->show();
 }
 
-void MainWindow::on_nameTF_textChanged(const QString &)
-{
-    string name = ui->nameTF->text().toStdString();
-    if (name.length() > 0 && model.getName() != name) {
-        model.setName(name);
+//======================================================================
+// Slots related to the Generators table.
+//======================================================================
+/**
+ * Double-clicked a row in the Tables table. Pop up the TableForm for it.
+ */
+void MainWindow::genDoubleClicked(int row, int ) {
+    Generator::Pointer gen = model.getGenerators()[row];
+    for (GeneratorForm *tForm: generatorForms) {
+        if (tForm->getGenerator() == gen) {
+            tForm->reload();
+            tForm->show();
+            tForm->raise();
+            tForm->activateWindow();
+            return;
+        }
     }
+
+    GeneratorForm * newForm = new GeneratorForm(model, gen);
+    generatorForms.push_back(newForm);
+
+    newForm->show();
+}
+
+/**
+ * Create a new table.
+ */
+void MainWindow::createGenerator()
+{
+    Generator::Pointer newGenerator = std::make_shared<Generator>();
+    model.pushGenerator(newGenerator);
+    showTables();
+
+    GeneratorForm * newForm = new GeneratorForm(model, newGenerator);
+    generatorForms.push_back(newForm);
+
+    newForm->show();
 }

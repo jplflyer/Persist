@@ -9,6 +9,7 @@
 
 #include "DataModel.h"
 #include "TableForm.h"
+#include "GeneratorForm.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,17 +26,32 @@ public:
     void load(const std::string);
 
 private slots:
-    void on_actionNew_triggered();
-    void on_actionOpen_triggered();
-    void on_actionSave_triggered();
-    void on_actionClose_triggered();
-    void on_tableWidget_cellDoubleClicked(int row, int column);
-    void on_newTablePB_clicked();
-    void tableChanged(DataModel::Table::Pointer);
+    // Menu items
+    void createNewModel();
+    void openModel();
+    void saveModel();
+    void closeModel();
 
-    void on_nameTF_textChanged(const QString &arg1);
+    // Global fields
+    void modelNameChanged(const QString &);
+
+    // The Tables tab
+    void tablesDoubleClicked(int row, int column);
+    void createTable();
+    void tableUpdated(DataModel::Table::Pointer);
+
+    // The Generators tab
+    void genDoubleClicked(int row, int column);
+    void createGenerator();
+
 
 private:
+    void fixRecents();
+    void fixButtons();
+    void loadRecent(size_t index);
+
+    void showTables();
+
     Ui::MainWindow *ui;
     QMenu * recentFilesMenu = nullptr;
     QList<QAction *> recentFileActions;
@@ -44,9 +60,6 @@ private:
     std::vector<TableForm *> tableForms;
     std::string modelFileName;
 
-    void fixRecents();
-    void fixButtons();
-    void loadRecent(size_t index);
+    std::vector<GeneratorForm *> generatorForms;
 
-    void showTables();
 };

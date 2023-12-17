@@ -259,13 +259,28 @@ public:
         typedef std::shared_ptr<Generator> Pointer;
         typedef ShowLib::JSONSerializableVector<Generator> Vector;
 
+        static const char * NAME_SQL;
+        static const char * NAME_CPP;
+        static const char * NAME_CPP_DBACCESS;
+        static const char * NAME_JAVA;
+
         void fromJSON(const JSON &) override;
         JSON toJSON() const override;
 
         const std::string & getName() const { return name; }
+        Generator & setName(const std::string & value) { name = value; return *this; }
+
         const std::string & getOutputBasePath() const { return outputBasePath; }
+        Generator & setOutputBasePath(const std::string & value) { outputBasePath = value; return *this; }
+
         const std::string & getOutputClassPath() const { return outputClassPath; }
+        Generator & setOutputClassPath(const std::string & value) { outputClassPath = value; return *this; }
+
         const std::unordered_map<std::string, std::string> & getOptions() const { return options; }
+
+        void setOption(const std::string &key, const std::string value) {
+            options[key] = value;
+        }
 
     private:
         /** This is the name of the generator such as SQL, CPP, or Java. */
@@ -319,6 +334,7 @@ public:
     void markClean() { isDirty = false; }
 
     const Generator::Vector & getGenerators() const { return generators; }
+    void pushGenerator(DataModel::Generator::Pointer);
 
 private:
     std::string name;

@@ -3,13 +3,14 @@ QT      += core gui widgets
 CONFIG  += c++17
 CONFIG  += sdk_no_version_check
 
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.17
 
 INCLUDEPATH += ../src /usr/local/include
 DEPENDPATH += /usr/local/include
 
 SOURCES += \
         Configuration.cpp \
+    GeneratorForm.cpp \
         TableForm.cpp \
         main.cpp \
 	MainWindow.cpp \
@@ -17,11 +18,13 @@ SOURCES += \
 
 HEADERS += \
         Configuration.h \
+        GeneratorForm.h \
         MainWindow.h \
         ../src/DataModel.h \
         TableForm.h
 
 FORMS += \
+        GeneratorForm.ui \
         MainWindow.ui \
         TableForm.ui
 
@@ -34,8 +37,8 @@ win32 {
         LIBS += -lshow-win
 }
 macx {
-        LIBS += -lshow-mac
+        LIBS += -L /usr/local/lib -lshow-mac
 }
-unix {
-        LIBS += -lshow
-}
+#unix {
+#        LIBS += -lshow
+#}

@@ -12,6 +12,11 @@ using Table = DataModel::Table;
 using Column = DataModel::Column;
 using DataType = DataModel::Column::DataType;
 
+const char * DataModel::Generator::NAME_SQL = "SQL";
+const char * DataModel::Generator::NAME_CPP = "C++";
+const char * DataModel::Generator::NAME_CPP_DBACCESS = "C++ DBAccess";
+const char * DataModel::Generator::NAME_JAVA = "Java";
+
 /**
  * Do a deep compare against this other DataModel.
  */
@@ -140,6 +145,10 @@ DataModel::sortAllColumns() {
     for (Table::Pointer &table: tables) {
         table->sortColumns();
     }
+}
+
+void DataModel::pushGenerator(DataModel::Generator::Pointer gen) {
+    generators.push_back(gen);
 }
 
 //======================================================================
