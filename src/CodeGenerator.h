@@ -8,15 +8,16 @@
  */
 class CodeGenerator
 {
-protected:
-    DataModel &model;
-
 public:
-    CodeGenerator(const std::string & _name, DataModel &_model);
+    CodeGenerator(const std::string & _name, DataModel &_model, DataModel::Generator::Pointer genInfo);
 
     virtual void generate() = 0;
 
     std::string name;
-    std::string outputFileName;
+
+protected:
+    DataModel &model;
+    DataModel::Generator::Pointer generatorInfo;
+
 };
 

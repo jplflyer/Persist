@@ -15,8 +15,8 @@ using DataType = DataModel::Column::DataType;
 /**
  * Constructor.
  */
-CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m)
-    : CodeGenerator("CodeGenerator_SQL", m)
+CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m, DataModel::Generator::Pointer genInfo)
+    : CodeGenerator("CodeGenerator_SQL", m, genInfo)
 {
 }
 
@@ -25,12 +25,7 @@ CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m)
  */
 void
 CodeGenerator_SQL::generate() {
-    if (outputFileName.length() == 0) {
-        cerr << "CodeGenerator_SQL::generate() with no output file specified." << endl;
-        exit(2);
-    }
-
-    std::ofstream ofs{outputFileName};
+    std::ofstream ofs{generatorInfo->getOutputBasePath()};
 
     ofs << "BEGIN;" << endl;
 

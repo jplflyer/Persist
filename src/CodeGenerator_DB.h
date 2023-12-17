@@ -11,7 +11,7 @@
 class CodeGenerator_DB: public CodeGenerator
 {
 public:
-    CodeGenerator_DB(DataModel &_model);
+    CodeGenerator_DB(DataModel &_model, DataModel::Generator::Pointer genInfo);
 
     void generate() override;
 

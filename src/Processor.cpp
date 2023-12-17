@@ -7,6 +7,7 @@
 #include "CodeGenerator_CPP.h"
 #include "CodeGenerator_SQL.h"
 #include "CodeGenerator_DB.h"
+#include "CodeGenerator_Java.h"
 #include "Processor.h"
 
 using std::cout;
@@ -129,10 +130,45 @@ Processor::writeModel() {
 }
 
 /**
+ * Perform code generation.
  *
+ * We have been called with this
+ *         DataModeler --model db.json \
+ *            --generate --sql db.sql \
+ *            --cppdir src/AuthorLib --stubdir src/AuthorLib/base \
+ *            --includePath AuthorLib/
+ *
+ * But I have removed all those arguments and they're in the model file now.
+ *
+ * SQL         : just use generator.outputBasePath as a filename.
+ * C++         : put concrete classes in generator.outputBasePath and base classes in .../base
+ * C++ DBAccess: same as C++
  */
 void
 Processor::generate() {
+    for (DataModel::Generator::Pointer generator: model.getGenerators()) {
+        string name = generator->getName();
+        cout << "Generator: " << name << endl;
+
+        if (name == "SQL") {
+            CodeGenerator_SQL sqlGen(model, generator);
+            sqlGen.generate();
+        }
+        else if (name == "C++") {
+            CodeGenerator_CPP cppGen(model, generator);
+            cppGen.generate();
+        }
+        else if (name == "C++ DBAccess") {
+            CodeGenerator_DB dbGen(model, generator);
+            dbGen.generate();
+        }
+        else if (name == "Java") {
+            CodeGenerator_Java javaGen(model, generator);
+            javaGen.generate();
+        }
+    }
+
+/*
     CodeGenerator_SQL sqlGen(model);
     sqlGen.outputFileName = sqlFileName;
     sqlGen.generate();
@@ -151,4 +187,5 @@ Processor::generate() {
     dbGen.cppStubDirName = cppStubDirName.length() > 0 ? cppStubDirName : cppDirName;
     dbGen.cppIncludePath = cppGen.cppIncludePath;
     dbGen.generate();
+*/
 }

@@ -251,6 +251,48 @@ public:
     };
 
     //======================================================================
+    // Generators.
+    //======================================================================
+    class Generator: public ShowLib::JSONSerializable
+    {
+    public:
+        typedef std::shared_ptr<Generator> Pointer;
+        typedef ShowLib::JSONSerializableVector<Generator> Vector;
+
+        void fromJSON(const JSON &) override;
+        JSON toJSON() const override;
+
+        const std::string & getName() const { return name; }
+        const std::string & getOutputBasePath() const { return outputBasePath; }
+        const std::string & getOutputClassPath() const { return outputClassPath; }
+        const std::unordered_map<std::string, std::string> & getOptions() const { return options; }
+
+    private:
+        /** This is the name of the generator such as SQL, CPP, or Java. */
+        std::string name;
+
+        /**
+         * This is the output path. For:
+         *
+         * SQL: the name of the output file
+         * C++: Top of the output directory.
+         * Java: Top of the output directory with ClassPath to be added.
+         */
+        std::string outputBasePath;
+
+        /**
+         * For C++, this is the prefix for include files.
+         * For Java, this is the class path.
+         */
+        std::string outputClassPath;
+
+        /**
+         * Any special options.
+         */
+        std::unordered_map<std::string, std::string> options;
+    };
+
+    //======================================================================
     // Methods
     //======================================================================
     bool deepEquals(const DataModel &orig) const;
@@ -276,9 +318,12 @@ public:
     void markDirty() { isDirty = true; }
     void markClean() { isDirty = false; }
 
+    const Generator::Vector & getGenerators() const { return generators; }
+
 private:
     std::string name;
     Table::Vector tables;
+    Generator::Vector generators;
     bool isDirty = false;
 };
 

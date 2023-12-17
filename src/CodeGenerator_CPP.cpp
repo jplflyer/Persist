@@ -15,9 +15,11 @@ using Table = DataModel::Table;
 using Column = DataModel::Column;
 using DataType = DataModel::Column::DataType;
 
-CodeGenerator_CPP::CodeGenerator_CPP(DataModel &m)
-    : CodeGenerator("CodeGenerator_CPP", m)
+CodeGenerator_CPP::CodeGenerator_CPP(DataModel &m, DataModel::Generator::Pointer genInfo)
+    : CodeGenerator("CodeGenerator_CPP", m, genInfo)
 {
+    cppStubDirName = genInfo->getOutputBasePath() + "/base";
+    cppIncludePath = genInfo->getOutputClassPath();
 }
 
 /**
@@ -48,8 +50,8 @@ CodeGenerator_CPP::generate() {
  */
 void
 CodeGenerator_CPP::generateIncludes() {
-    string hName = outputFileName + "/" + model.getName() + ".h";
-    string dbhName = outputFileName + "/DB_" + model.getName() + ".h";
+    string hName = generatorInfo->getOutputClassPath() + "/" + model.getName() + ".h";
+    string dbhName = generatorInfo->getOutputClassPath() + "/DB_" + model.getName() + ".h";
 
     std::ofstream hOutput{hName};
     std::ofstream dbOutput{dbhName};
@@ -587,7 +589,7 @@ void CodeGenerator_CPP::generateConcreteH(DataModel::Table &table)
 {
     string name = table.getName();
     string baseClassName = name + "_Base";
-    string hName = outputFileName + "/" + name + ".h";
+    string hName = generatorInfo->getOutputBasePath() + "/" + name + ".h";
 
     if (!std::filesystem::exists(hName)) {
         std::ofstream ofs{hName};
@@ -621,7 +623,7 @@ void CodeGenerator_CPP::generateConcreteH(DataModel::Table &table)
 void CodeGenerator_CPP::generateConcreteCPP(DataModel::Table &table)
 {
     string name = table.getName();
-    string cppName = outputFileName + "/" + name + ".cpp";
+    string cppName = generatorInfo->getOutputBasePath() + "/" + name + ".cpp";
 
     if (!std::filesystem::exists(cppName)) {
         std::ofstream ofs{cppName};

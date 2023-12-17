@@ -41,6 +41,7 @@ void
 DataModel::fromJSON(const JSON &json)  {
     name = stringValue(json, "name");
     tables.fromJSON(jsonArray(json, "tables"));
+    generators.fromJSON(jsonArray(json, "generators"));
 }
 
 /**
@@ -51,6 +52,7 @@ JSON DataModel::toJSON() const {
 
     json["name"] = name;
     json["tables"] = tables.toJSON();
+    json["generators"] = generators.toJSON();
 
     return json;
 }
@@ -650,4 +652,35 @@ const DataModel::Column::Vector DataModel::Table::getAllReferencesToTable(const 
     }
 
     return vec;
+}
+
+//======================================================================
+// Generators definitions.
+//======================================================================
+
+/**
+ * Populate from JSON.
+ */
+void DataModel::Generator::fromJSON(const JSON &json) {
+    name = stringValue(json, "name");
+    outputBasePath = stringValue(json, "outputBasePath");
+    outputClassPath = stringValue(json, "outputClassPath");
+    JSON optionsJSON = jsonValue(json, "options");
+    if (!optionsJSON.empty()) {
+        options = optionsJSON.get<std::unordered_map<std::string, string>>();
+    }
+}
+
+/**
+ * Write to JSON.
+ */
+JSON DataModel::Generator::toJSON() const {
+    JSON json = JSON::object();
+    json["name"] = name;
+    json["outputBasePath"] = outputBasePath;
+    setStringValue(json, "outputClassPath", outputClassPath);
+    if (!options.empty()) {
+        json["options"] = options;
+    }
+    return json;
 }

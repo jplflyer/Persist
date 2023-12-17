@@ -25,8 +25,8 @@ using DataType = DataModel::Column::DataType;
 /**
  * Constructor.
  */
-CodeGenerator_DB::CodeGenerator_DB(DataModel &m)
-    : CodeGenerator("CodeGenerator_DB", m)
+CodeGenerator_DB::CodeGenerator_DB(DataModel &m, DataModel::Generator::Pointer genInfo)
+    : CodeGenerator("CodeGenerator_DB", m, genInfo)
 {
 }
 
@@ -35,11 +35,6 @@ CodeGenerator_DB::CodeGenerator_DB(DataModel &m)
  */
 void
 CodeGenerator_DB::generate() {
-    if (outputFileName.length() == 0) {
-        cerr << "CodeGenerator_DB::generate() with no output directory specified." << endl;
-        exit(2);
-    }
-
     for (const Table::Pointer & table: model.getTables()) {
         generateH(*table);
         generateCPP(*table);
@@ -562,7 +557,7 @@ void CodeGenerator_DB::generateConcreteH(Table &table)
 {
     string myClassName = string{"DB_"} + table.getName();
     string baseClassName = myClassName + "_Base";
-    string hName = outputFileName + "/" + myClassName + ".h";
+    string hName = generatorInfo->getOutputBasePath() + "/" + myClassName + ".h";
 
     if (!std::filesystem::exists(hName)) {
         std::ofstream ofs{hName};
@@ -587,7 +582,7 @@ void CodeGenerator_DB::generateConcreteH(Table &table)
 void CodeGenerator_DB::generateConcreteCPP(Table &table)
 {
     string myClassName = string{"DB_"} + table.getName();
-    string cppName = outputFileName + "/" + myClassName + ".cpp";
+    string cppName = generatorInfo->getOutputBasePath() + "/" + myClassName + ".cpp";
 
     if (!std::filesystem::exists(cppName)) {
         std::ofstream ofs{cppName};

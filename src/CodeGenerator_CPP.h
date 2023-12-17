@@ -5,12 +5,10 @@
 class CodeGenerator_CPP: public CodeGenerator
 {
 public:
-    CodeGenerator_CPP(DataModel &);
+    CodeGenerator_CPP(DataModel &, DataModel::Generator::Pointer genInfo);
 
     void generate() override;
 
-    std::string cppStubDirName;
-    std::string cppIncludePath;
     bool wantJSON = true;
 
 private:
@@ -40,5 +38,8 @@ private:
     bool isDouble(const std::string &);
     bool isBool(const std::string &);
     bool isString(const std::string &);
+
+    std::string cppStubDirName;
+    std::string cppIncludePath;
 };
 
