@@ -7,14 +7,60 @@
     <x>0</x>
     <y>0</y>
     <width>817</width>
-    <height>498</height>
+    <height>602</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="2" column="1">
+   <item row="18" column="1">
+    <widget class="QWidget" name="checkW" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QCheckBox" name="withSpringTags">
+        <property name="text">
+         <string>With Spring Tags</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="12" column="1">
+    <widget class="QComboBox" name="authorizationTableCB"/>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="basePathL">
+     <property name="text">
+      <string>Output Base Path:</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="15" column="1">
+    <widget class="QLabel" name="extendsHelp">
+     <property name="text">
+      <string>Comma-delimited list with package if not in the same package as the POJOs</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="descTF"/>
+   </item>
+   <item row="10" column="1">
+    <widget class="QLabel" name="classPathHelp">
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
     <spacer name="verticalSpacer_3">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -27,7 +73,24 @@
      </property>
     </spacer>
    </item>
-   <item row="11" column="1">
+   <item row="3" column="0">
+    <widget class="QLabel" name="descL">
+     <property name="text">
+      <string>Description:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="13" column="1">
+    <widget class="QLabel" name="authorizationTableHelp">
+     <property name="text">
+      <string>Normally your Users or Member table</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="19" column="1">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -43,8 +106,31 @@
    <item row="1" column="1">
     <widget class="QComboBox" name="typeCB"/>
    </item>
+   <item row="11" column="1">
+    <spacer name="verticalSpacer_5">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="14" column="0">
+    <widget class="QLabel" name="extendsL">
+     <property name="text">
+      <string>POJO Extends:</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
    <item row="7" column="1">
-    <widget class="QLabel" name="classPathHelp">
+    <widget class="QLabel" name="basePathHelp">
      <property name="text">
       <string>TextLabel</string>
      </property>
@@ -53,8 +139,67 @@
      </property>
     </widget>
    </item>
+   <item row="17" column="1">
+    <widget class="QLabel" name="implementsHelp">
+     <property name="text">
+      <string>Comma-delimited list with package if not in the same package as the POJOs</string>
+     </property>
+    </widget>
+   </item>
+   <item row="14" column="1">
+    <widget class="QLineEdit" name="extendsTF"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="typeL">
+     <property name="text">
+      <string>Type:</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
    <item row="9" column="1">
-    <widget class="QComboBox" name="authorizationTableCB"/>
+    <widget class="QLineEdit" name="classPathTF"/>
+   </item>
+   <item row="6" column="1">
+    <widget class="QLineEdit" name="basePathTF"/>
+   </item>
+   <item row="2" column="1">
+    <spacer name="verticalSpacer_6">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="8" column="1">
+    <spacer name="verticalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="9" column="0">
+    <widget class="QLabel" name="classPathL">
+     <property name="text">
+      <string>Output Class Path:</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
    </item>
    <item row="0" column="1">
     <spacer name="verticalSpacer_2">
@@ -69,76 +214,14 @@
      </property>
     </spacer>
    </item>
-   <item row="6" column="0">
-    <widget class="QLabel" name="classPathL">
-     <property name="text">
-      <string>Output Class Path:</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-    </widget>
-   </item>
    <item row="4" column="1">
-    <widget class="QLabel" name="basePathHelp">
+    <widget class="QLabel" name="descHelp">
      <property name="text">
       <string>TextLabel</string>
      </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="typeL">
-     <property name="text">
-      <string>Type:</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="basePathL">
-     <property name="text">
-      <string>Output Base Path:</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
-    <spacer name="verticalSpacer_4">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="10" column="1">
-    <widget class="QLabel" name="authorizationTableHelp">
-     <property name="text">
-      <string>Normally your Users or Member table</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="1">
-    <widget class="QLineEdit" name="classPathTF"/>
-   </item>
-   <item row="3" column="1">
-    <widget class="QLineEdit" name="basePathTF"/>
-   </item>
-   <item row="9" column="0">
+   <item row="12" column="0">
     <widget class="QLabel" name="authorizationTableL">
      <property name="text">
       <string>Authorization Table:</string>
@@ -148,18 +231,18 @@
      </property>
     </widget>
    </item>
-   <item row="8" column="1">
-    <spacer name="verticalSpacer_5">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+   <item row="16" column="1">
+    <widget class="QLineEdit" name="implementsTF"/>
+   </item>
+   <item row="16" column="0">
+    <widget class="QLabel" name="implementsL">
+     <property name="text">
+      <string>POJO Implements:</string>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
-    </spacer>
+    </widget>
    </item>
   </layout>
  </widget>

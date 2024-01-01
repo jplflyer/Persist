@@ -1,4 +1,4 @@
-#include <iostream>
+
 #include <fstream>
 #include <filesystem>
 
@@ -9,6 +9,8 @@
 
 using Table = DataModel::Table;
 using Column = DataModel::Column;
+
+using ShowLib::StringVector;
 
 
 /**
@@ -30,6 +32,21 @@ void CodeGenerator_Java::generate() {
     for (auto const& [key, value] : options) {
         if (key == "userTable") {
             userTableName = value;
+        }
+        else if (key == "withSpringTags") {
+            withSpringTags = value == "true";
+        }
+        else if (key == "extends") {
+            extendsList.tokenize(value, ',');
+            for (const StringVector::Pointer &strP: extendsList) {
+                ShowLib::trimInPlace(*strP);
+            }
+        }
+        else if (key == "implements") {
+            implementsList.tokenize(value, ',');
+            for (const StringVector::Pointer &strP: implementsList) {
+                ShowLib::trimInPlace(*strP);
+            }
         }
     }
 
@@ -58,7 +75,16 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
         << "import lombok.Builder;\n"
         << "import lombok.Data;\n"
         << "import lombok.NoArgsConstructor;\n"
+        << "import lombok.experimental.Accessors;\n"
         ;
+
+    // Include JsonIgnore if we have any foreign keys or no-serialize fields
+    for (const Column::Pointer & column: table->getColumns()) {
+        if (column->isForeignKey() || !column->getSerialize()) {
+            ofs << "import com.fasterxml.jackson.annotation.JsonIgnore;\n";
+            break;
+        }
+    }
     for (const Column::Pointer & column: table->getColumns()) {
         if (javaType(column->getDataType()) == "LocalDateTime") {
             ofs << "import java.time.LocalDateTime;\n";
@@ -66,7 +92,6 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
         }
     }
 
-    string implementsPortion = "";
     if (isMemberTable) {
         ofs << "import org.springframework.security.core.userdetails.UserDetails;\n"
             << "import org.springframework.security.core.GrantedAuthority;\n"
@@ -74,18 +99,56 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
             << "import java.util.Collection;\n"
             << "import java.util.List;\n"
             ;
+    }
+    ofs << "import java.util.Set;\n";
 
-        implementsPortion = " implements UserDetails";
+    ofs  << "\n"
+         << "@Entity\n"
+         << "@Data\n"
+         << "@Accessors(chain = true)\n"
+         << "@NoArgsConstructor\n"
+         << "@AllArgsConstructor\n"
+         << "@Builder\n"
+         << "public class " << table->getName()
+         ;
+
+    if ( !extendsList.empty()) {
+        string delim = " ";
+        ofs << " extends";
+        for (const StringVector::Pointer &strP: extendsList) {
+            if (ShowLib::endsWith(*strP, "<?>")) {
+                ofs << delim << strP->substr(0, strP->size() - 2) << "<" << table->getName() << ">";
+            }
+            else {
+                ofs << delim << *strP;
+            }
+            delim = ", ";
+        }
     }
 
-   ofs  << "\n"
-        << "@Entity\n"
-        << "@Data\n"
-        << "@NoArgsConstructor\n"
-        << "@AllArgsConstructor\n"
-        << "@Builder\n"
-        << "public class " << table->getName() << implementsPortion << " {\n"
-        ;
+    if ( implementsList.empty()) {
+        if (isMemberTable) {
+            ofs << " implements UserDetails";
+        }
+    }
+    else {
+        string delim = " ";
+        ofs << " implements";
+        for (const StringVector::Pointer &strP: implementsList) {
+            if (ShowLib::endsWith(*strP, "<?>")) {
+                ofs << delim << strP->substr(0, strP->size() - 3) << "<" << table->getName() << ">";
+            }
+            else {
+                ofs << delim << *strP;
+            }
+            delim = ", ";
+        }
+        if (isMemberTable) {
+            ofs << delim << "UserDetails";
+        }
+    }
+
+    ofs << "\n{\n";
 
     for (const Column::Pointer & column: table->getColumns()) {
         if (column->getIsPrimaryKey()) {
@@ -95,12 +158,22 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
                 << "    @SequenceGenerator(name=\"" << seqName << "\", sequenceName=\"" << seqName << "\", allocationSize = 1)\n"
                 ;
         }
-        ofs << "    " << javaType(column->getDataType()) << " " << column->getName() << ";\n";
+
+        if (column->isForeignKey()) {
+            generateForeignKey(ofs, column);
+        }
+
+        if (!column->getSerialize()) {
+            ofs << "    @JsonIgnore\n";
+        }
+        ofs << "    " << javaType(column->getDataType()) << " " << column->getName() << ";\n"
+            << "\n"
+            ;
     }
 
     if (isMemberTable) {
         ofs << "\n"
-            << "@Override\n"
+            << "    @Override\n"
             << "    public Collection<? extends GrantedAuthority> getAuthorities() {\n"
             << "        return List.of(new SimpleGrantedAuthority( isAdmin ? \"ADMIN\" : \"MEMBER\"));\n"
             << "     }\n"
@@ -133,9 +206,57 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
 
     }
 
+    // We also want reverse references. Remote tables that reference our primary key,
+    // a OneToMany relationship.
+    Column::Vector foreignRefs = model.findReferencesTo(*table);
+    for (const Column::Pointer &col: foreignRefs) {
+        Table::Pointer refTable = col->getOurTable().lock();
+        string refName = col->getReversePtrName().empty()
+             ? ShowLib::firstLower(refTable->getName()) + "s"
+             : col->getReversePtrName();
+
+        ofs << "\n"
+            << "    @OneToMany(mappedBy =\"" << col->getName() << "\")\n"
+            << "    private Set<" << refTable->getName() << "> " << refName << ";\n"
+            ;
+    }
+
     ofs << "}\n"
         ;
 }
+
+/**
+ * Spring Data likes foreign key references to look like this:
+ *
+ *  @ManyToOne(fetch = FetchType.LAZY)
+ *  @JoinColumn(name = "tutorial_id")
+ *  @JsonIgnore
+ *  private Tutorial tutorial;
+ *
+ * Plus we want to expose the key, anyway.
+ *
+ *  @Column(insertable = false, updatable = false)
+ *  Integer tutorialId;
+ */
+void CodeGenerator_Java::generateForeignKey(std::ofstream & ofs, DataModel::Column::Pointer column) {
+    Column::Pointer remoteColumn = column->getReferences();
+    Table::Pointer remoteTable = remoteColumn->getOurTable().lock();
+    string name = column->getRefPtrName();
+    if (name.empty()) {
+        name = ShowLib::firstLower(remoteTable->getName());
+    }
+
+    ofs << "    @ManyToOne(fetch = FetchType.LAZY)\n"
+        << "    @JoinColumn(name = \"" << column->getDbName() << "\")\n"
+        << "    @JsonIgnore\n"
+        << "    private " << remoteTable->getName() << " " << name << ";\n"
+        << "\n"
+        << "    @Column(name = \"" << column->getDbName() << "\", insertable = false, updatable = false)\n"
+        ;
+
+    // The FK field (memberId, whatever), itself will be generated by the caller.
+}
+
 
 /**
  * We assume Spring Data. Generate the corresponding repository.
@@ -143,14 +264,6 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
 void CodeGenerator_Java::generateRepository(Table::Pointer table) {
     string basePath = generatorInfo->getOutputBasePath() + "/" + slashedClassPath  + "/repository/";
     string path = basePath + table->getName() + "Repository.java";
-    bool wantOptional = false;
-
-    for (const Column::Pointer & column: table->getColumns()) {
-        if (column->getWantFinder()) {
-            wantOptional = true;
-            break;
-        }
-    }
 
     std::filesystem::create_directories(basePath);
 
@@ -158,22 +271,32 @@ void CodeGenerator_Java::generateRepository(Table::Pointer table) {
 
     ofs << "package " << generatorInfo->getOutputClassPath() << ".repository;\n"
         << "\n"
+        << "import java.util.List;\n"
+        << "import java.util.Optional;\n"
         << "import org.springframework.data.jpa.repository.JpaRepository;\n"
         << "import " << generatorInfo->getOutputClassPath() << ".dbmodel." << table->getName() << ";\n"
         ;
 
-    if (wantOptional) {
-        ofs << "import java.util.Optional;\n";
-    }
 
     ofs << "\n"
         << "public interface " << table->getName() << "Repository extends JpaRepository<" << table->getName() << ", Integer> {\n"
         ;
+
     for (const Column::Pointer & column: table->getColumns()) {
+        //
+        // This is going to look like one of these:
+        //
+        //		Optional<Foo> getByBlah(Integer blah);
+        //		List<Foo> getByBlah(Integer blah);
+        //
         if (column->getWantFinder()) {
-            ofs << "    Optional<" << table->getName() << "> findBy" << ShowLib::firstUpper(column->getName()) << "(String username);\n";
+            ofs << "    public " << (column->isForeignKey() ? "List<" : "Optional<")
+                << table->getName()
+                << "> findBy" << ShowLib::firstUpper(column->getName())
+                << "(" << javaType(column->getDataType()) << " " << column->getName() << ");\n";
         }
     }
+
     ofs << "}\n"
         ;
 }

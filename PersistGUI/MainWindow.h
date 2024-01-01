@@ -43,7 +43,7 @@ private slots:
     // The Generators tab
     void genDoubleClicked(int row, int column);
     void createGenerator();
-
+    void generatorChanged(DataModel::Generator::Pointer);
 
 private:
     void fixRecents();
@@ -51,6 +51,7 @@ private:
     void loadRecent(size_t index);
 
     void showTables();
+    void showGenerators();
 
     Ui::MainWindow *ui;
     QMenu * recentFilesMenu = nullptr;

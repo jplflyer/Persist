@@ -151,6 +151,22 @@ void DataModel::pushGenerator(DataModel::Generator::Pointer gen) {
     generators.push_back(gen);
 }
 
+/**
+ * Find all foreign key relationships to this table.
+ */
+Column::Vector DataModel::findReferencesTo(const Table &table) {
+    Column::Vector vec;
+
+    for (const Table::Pointer & thisTable: tables) {
+        Column::Vector refs = thisTable->getAllReferencesToTable(table);
+        for (const Column::Pointer &col: refs) {
+            vec.push_back(col);
+        }
+    }
+
+    return vec;
+}
+
 //======================================================================
 // Columns.
 //======================================================================
@@ -667,11 +683,16 @@ const DataModel::Column::Vector DataModel::Table::getAllReferencesToTable(const 
 // Generators definitions.
 //======================================================================
 
+DataModel::Generator::~Generator() {
+}
+
+
 /**
  * Populate from JSON.
  */
 void DataModel::Generator::fromJSON(const JSON &json) {
     name = stringValue(json, "name");
+    description = stringValue(json, "description");
     outputBasePath = stringValue(json, "outputBasePath");
     outputClassPath = stringValue(json, "outputClassPath");
     JSON optionsJSON = jsonValue(json, "options");
@@ -685,7 +706,9 @@ void DataModel::Generator::fromJSON(const JSON &json) {
  */
 JSON DataModel::Generator::toJSON() const {
     JSON json = JSON::object();
+
     json["name"] = name;
+    json["description"] = description;
     json["outputBasePath"] = outputBasePath;
     setStringValue(json, "outputClassPath", outputClassPath);
     if (!options.empty()) {

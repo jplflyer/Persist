@@ -15,11 +15,24 @@ GeneratorForm::GeneratorForm(DataModel &m, DataModel::Generator::Pointer gen, QW
         generator(gen)
 
 {
+    bool withSpringTags = false;
+    string extendsStr = "";
+    string implementsStr = "";
+
     ui->setupUi(this);
 
     for ( auto const & [key, value]: generator->getOptions()) {
         if (key == "userTable") {
             userTable = value;
+        }
+        else if (key == "withSpringTags") {
+            withSpringTags = value == "true";
+        }
+        else if (key == "extends") {
+            extendsStr = value;
+        }
+        else if (key == "implements") {
+            implementsStr = value;
         }
     }
 
@@ -35,9 +48,13 @@ GeneratorForm::GeneratorForm(DataModel &m, DataModel::Generator::Pointer gen, QW
 
     // Connect the slots.
     connect(ui->typeCB,               &QComboBox::currentIndexChanged,  this, &GeneratorForm::typeSelected);
+    connect(ui->descTF,               &QLineEdit::textChanged,          this, &GeneratorForm::descriptionChanged);
     connect(ui->basePathTF,           &QLineEdit::textChanged,          this, &GeneratorForm::basePathChanged);
     connect(ui->classPathTF,          &QLineEdit::textChanged,          this, &GeneratorForm::classPathChanged);
     connect(ui->authorizationTableCB, &QComboBox::currentIndexChanged,  this, &GeneratorForm::authTableSelected);
+    connect(ui->extendsTF,            &QLineEdit::textChanged,          this, &GeneratorForm::extendsChanged);
+    connect(ui->implementsTF,         &QLineEdit::textChanged,          this, &GeneratorForm::implementsChanged);
+    connect(ui->withSpringTags,       &QCheckBox::stateChanged,         this, &GeneratorForm::withSpringTagsChanged);
 
     reload();
 
@@ -66,6 +83,11 @@ GeneratorForm::GeneratorForm(DataModel &m, DataModel::Generator::Pointer gen, QW
     //----------------------------------------------------------------------
     ui->basePathTF->setText( QString::fromStdString( generator->getOutputBasePath() ) );
     ui->classPathTF->setText( QString::fromStdString( generator->getOutputClassPath() ) );
+    ui->withSpringTags->setChecked(withSpringTags);
+    ui->extendsTF->setText( QString::fromStdString( extendsStr) );
+    ui->implementsTF->setText( QString::fromStdString( implementsStr) );
+
+    ui->descHelp->setText("A meaningful description");
 }
 
 /**
@@ -98,6 +120,9 @@ void GeneratorForm::reload() {
     }
 }
 
+/**
+ * This generator is for SQL. Set the help and hide the extra fields.
+ */
 void GeneratorForm::showForSQL() {
     ui->basePathTF->setEnabled(true);
     ui->basePathHelp->setText("The name of the output file. This can be relative to the current location when DataModeler --gen is run.");
@@ -109,8 +134,19 @@ void GeneratorForm::showForSQL() {
     ui->authorizationTableL->hide();
     ui->authorizationTableCB->hide();
     ui->authorizationTableHelp->hide();
+
+    ui->extendsL->hide();
+    ui->extendsTF->hide();
+    ui->extendsHelp->hide();
+    ui->implementsL->hide();
+    ui->implementsTF->hide();
+    ui->implementsHelp->hide();
+    ui->withSpringTags->hide();
 }
 
+/**
+ * This generator is for C++. Set the help and show/hide the extra fields.
+ */
 void GeneratorForm::showForCPP() {
     ui->basePathTF->setEnabled(true);
     ui->basePathHelp->setText("The top of the C++ source tree. This can be relative to the current location when DataModeler --gen is run.");
@@ -123,8 +159,19 @@ void GeneratorForm::showForCPP() {
     ui->authorizationTableL->hide();
     ui->authorizationTableCB->hide();
     ui->authorizationTableHelp->hide();
+
+    ui->extendsL->hide();
+    ui->extendsTF->hide();
+    ui->extendsHelp->hide();
+    ui->implementsL->hide();
+    ui->implementsTF->hide();
+    ui->implementsHelp->hide();
+    ui->withSpringTags->hide();
 }
 
+/**
+ * This generator is for C++ DBAccess. Set the help and show/hide the extra fields.
+ */
 void GeneratorForm::showForCPP_DBAccess() {
     ui->basePathTF->setEnabled(true);
     ui->basePathHelp->setText("The top of the C++ source tree. This can be relative to the current location when DataModeler --gen is run.");
@@ -137,8 +184,19 @@ void GeneratorForm::showForCPP_DBAccess() {
     ui->authorizationTableL->hide();
     ui->authorizationTableCB->hide();
     ui->authorizationTableHelp->hide();
+
+    ui->extendsL->hide();
+    ui->extendsTF->hide();
+    ui->extendsHelp->hide();
+    ui->implementsL->hide();
+    ui->implementsTF->hide();
+    ui->implementsHelp->hide();
+    ui->withSpringTags->hide();
 }
 
+/**
+ * This generator is for Java. Set the help and show/hide the extra fields.
+ */
 void GeneratorForm::showForJava() {
     ui->basePathTF->setEnabled(true);
     ui->basePathHelp->setText("The top of the Java source tree. This can be relative to the current location when DataModeler --gen is run.");
@@ -152,6 +210,15 @@ void GeneratorForm::showForJava() {
     ui->authorizationTableCB->show();
     ui->authorizationTableHelp->show();
     ui->authorizationTableHelp->setText("Select the table used for authorization. This is usually something like Member or User.");
+
+    ui->extendsL->show();
+    ui->extendsTF->show();
+    ui->extendsHelp->show();
+    ui->implementsL->show();
+    ui->implementsTF->show();
+    ui->implementsHelp->show();
+
+    ui->withSpringTags->show();
 }
 
 /**
@@ -164,20 +231,28 @@ void GeneratorForm::typeSelected(int index) {
         case 2: generator->setName(Generator::NAME_CPP_DBACCESS); showForCPP_DBAccess(); break;
         case 3: generator->setName(Generator::NAME_JAVA); showForJava(); break;
     }
+    emit generatorChanged(generator);
+}
+
+void GeneratorForm::descriptionChanged(const QString &newDesc) {
+    generator->setDescription(newDesc.toStdString());
+    emit generatorChanged(generator);
 }
 
 /**
  * They changed the base path.
  */
 void GeneratorForm::basePathChanged(const QString &newPath) {
-    cout << "basePathChanged to: " << newPath.toStdString() << endl;
+    generator->setOutputBasePath(newPath.toStdString());
+    emit generatorChanged(generator);
 }
 
 /**
  * They changed the class path.
  */
 void GeneratorForm::classPathChanged(const QString &newPath) {
-    cout << "classPathChanged to: " << newPath.toStdString() << endl;
+    generator->setOutputClassPath(newPath.toStdString());
+    emit generatorChanged(generator);
 }
 
 /**
@@ -185,6 +260,30 @@ void GeneratorForm::classPathChanged(const QString &newPath) {
  * This table will receive additional generated code to support Spring Web.
  */
 void GeneratorForm::authTableSelected(int index) {
-    cout << "authTableSelected: " << index << endl;
+    if (index >= 0) {
+        Table::Pointer table = model.getTables().at(index);
+        generator->setOption("userTable", table->getName());
+        emit generatorChanged(generator);
+    }
 }
 
+void GeneratorForm::withSpringTagsChanged(int) {
+    bool withSpringTags = ui->withSpringTags->isChecked();
+    generator->setOption("withSpringTags", withSpringTags ? "true" : "false");
+    emit generatorChanged(generator);
+}
+
+/**
+ * They edited the "Extends" field.
+ */
+void GeneratorForm::extendsChanged(const QString &str) {
+    generator->setOption("extends", str.toStdString());
+}
+
+
+/**
+ * They edited the "Implements" field.
+ */
+void GeneratorForm::implementsChanged(const QString &str) {
+    generator->setOption("implements", str.toStdString());
+}

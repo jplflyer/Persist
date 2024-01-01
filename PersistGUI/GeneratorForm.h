@@ -18,11 +18,18 @@ public:
     DataModel::Generator::Pointer getGenerator() const { return generator; }
     void reload();
 
+signals:
+    void generatorChanged(DataModel::Generator::Pointer);
+
 private slots:
     void typeSelected(int index);
-    void basePathChanged(const QString &arg1);
-    void classPathChanged(const QString &arg1);
-    void authTableSelected(int index);
+    void descriptionChanged(const QString &);
+    void basePathChanged(const QString &);
+    void classPathChanged(const QString &);
+    void authTableSelected(int);
+    void extendsChanged(const QString &);
+    void implementsChanged(const QString &);
+    void withSpringTagsChanged(int);
 
 private:
     void showForSQL();

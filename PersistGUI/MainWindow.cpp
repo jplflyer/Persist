@@ -7,13 +7,11 @@
 #include <QFileDialog>
 #include <QTableWidget>
 
+#include <showlib/CommonUsing.h>
+
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "Configuration.h"
-
-using std::cout;
-using std::endl;
-using std::string;
 
 using Column = DataModel::Column;
 using Table = DataModel::Table;
@@ -31,12 +29,21 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     fixRecents();
     fixButtons();
+
     QTableWidget * tWidget = ui->tableWidget;
     tWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     tWidget->setColumnCount(4);
     QStringList headers {"Class Name", "Database Table Name", "Number of Columns", "Actions"};
     tWidget->setHorizontalHeaderLabels(headers);
+    tWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    tWidget = ui->generatorsTable;
+    tWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tWidget->setColumnCount(2);
+    QStringList genHeaders {"Generator Type", "Description"};
+    tWidget->setHorizontalHeaderLabels(genHeaders);
     tWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
     // Do this in case I save the MainWindow.ui with a different tab selected.
@@ -144,6 +151,7 @@ void MainWindow::load(const std::string fileName) {
         }
 
         showTables();
+        showGenerators();
     }
 }
 
@@ -301,11 +309,35 @@ void MainWindow::createTable()
 //======================================================================
 // Slots related to the Generators table.
 //======================================================================
+
+/**
+ * Display the list of tables.
+ */
+void
+MainWindow::showGenerators() {
+    QTableWidget * table = ui->generatorsTable;
+    int rowIndex = 0;
+
+    const Generator::Vector genList = model.getGenerators();
+    table->setRowCount(genList.size());
+    for (const Generator::Pointer & gPtr: genList) {
+        table->setItem(rowIndex, 0, new QTableWidgetItem(QString::fromStdString(gPtr->getName())));
+        table->setItem(rowIndex, 1, new QTableWidgetItem(QString::fromStdString(gPtr->getDescription())));
+        ++rowIndex;
+    }
+
+}
 /**
  * Double-clicked a row in the Tables table. Pop up the TableForm for it.
  */
 void MainWindow::genDoubleClicked(int row, int ) {
-    Generator::Pointer gen = model.getGenerators()[row];
+    const Generator::Vector & generators = model.getGenerators();
+
+    if (static_cast<size_t>(row) > generators.size()) {
+        return;
+    }
+
+    Generator::Pointer gen = generators[row];
     for (GeneratorForm *tForm: generatorForms) {
         if (tForm->getGenerator() == gen) {
             tForm->reload();
@@ -318,6 +350,7 @@ void MainWindow::genDoubleClicked(int row, int ) {
 
     GeneratorForm * newForm = new GeneratorForm(model, gen);
     generatorForms.push_back(newForm);
+    connect(newForm, &GeneratorForm::generatorChanged, this, &MainWindow::generatorChanged);
 
     newForm->show();
 }
@@ -329,10 +362,18 @@ void MainWindow::createGenerator()
 {
     Generator::Pointer newGenerator = std::make_shared<Generator>();
     model.pushGenerator(newGenerator);
-    showTables();
+    showGenerators();
 
     GeneratorForm * newForm = new GeneratorForm(model, newGenerator);
     generatorForms.push_back(newForm);
+    connect(newForm, &GeneratorForm::generatorChanged, this, &MainWindow::generatorChanged);
 
     newForm->show();
+}
+
+/**
+ * The generator was changed.
+ */
+void MainWindow::generatorChanged(DataModel::Generator::Pointer) {
+    showGenerators();
 }

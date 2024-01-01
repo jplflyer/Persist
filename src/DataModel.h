@@ -264,11 +264,16 @@ public:
         static const char * NAME_CPP_DBACCESS;
         static const char * NAME_JAVA;
 
+        virtual ~Generator();
+
         void fromJSON(const JSON &) override;
         JSON toJSON() const override;
 
         const std::string & getName() const { return name; }
         Generator & setName(const std::string & value) { name = value; return *this; }
+
+        const std::string & getDescription() const { return description; }
+        Generator & setDescription(const std::string & value) { description = value; return *this; }
 
         const std::string & getOutputBasePath() const { return outputBasePath; }
         Generator & setOutputBasePath(const std::string & value) { outputBasePath = value; return *this; }
@@ -285,6 +290,8 @@ public:
     private:
         /** This is the name of the generator such as SQL, CPP, or Java. */
         std::string name;
+
+        std::string description;
 
         /**
          * This is the output path. For:
@@ -328,6 +335,7 @@ public:
     void pushTable(DataModel::Table::Pointer);
 
     bool fixReferences();
+    Column::Vector findReferencesTo(const Table &table);
 
     bool getIsDirty() const { return isDirty; }
     void markDirty() { isDirty = true; }
