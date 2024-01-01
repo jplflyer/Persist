@@ -10,6 +10,7 @@ DEPENDPATH += /usr/local/include
 
 SOURCES += \
         Configuration.cpp \
+    DatabaseForm.cpp \
     GeneratorForm.cpp \
         TableForm.cpp \
         main.cpp \
@@ -18,12 +19,14 @@ SOURCES += \
 
 HEADERS += \
         Configuration.h \
+        DatabaseForm.h \
         GeneratorForm.h \
         MainWindow.h \
         ../src/DataModel.h \
         TableForm.h
 
 FORMS += \
+        DatabaseForm.ui \
         GeneratorForm.ui \
         MainWindow.ui \
         TableForm.ui

@@ -100,6 +100,7 @@ public:
         const std::string getRefPtrName() const { return refPtrName; }
         const std::string getReversePtrName() const { return reversePtrName; }
         const std::string getDbName() const { return dbName; }
+        const std::string getDbNameGenerated() const { return dbNameGenerated; }
         const std::string getReferenceStr() const { return referenceStr; }
         DataType getDataType() const { return dataType; }
         int getLength() const { return dataLength; }
@@ -116,12 +117,16 @@ public:
         bool isTimestamp() const;
         bool isForeignKey() const { return references != nullptr; }
 
+        int getVersion() const { return version; }
+
         Pointer getReferences() const { return references; }
 
         Column & setName(const std::string &value) { name = value; return *this; }
         Column & setRefPtrName(const std::string &value) { refPtrName = value; return *this; }
         Column & setReversePtrName(const std::string &value) { reversePtrName = value; return *this; }
         Column & setDbName(const std::string &value) { dbName = value; return *this; }
+        Column & setDbNameGenerated(const std::string &value) { dbNameGenerated = value; return *this; }
+        Column & setVersion(int value) { version = value; return *this; }
 
         Column & setReferenceStr(const std::string &value) {
             referenceStr = value;
@@ -167,6 +172,12 @@ public:
         /** This is the column name */
         std::string	dbName;
 
+        /**
+         * This gets used in migrations. If this name doesn't match dbName, either we're a new column
+         * or the name was changed.
+         */
+        std::string	dbNameGenerated;
+
         /** This is the string from the JSON before we look it up. */
         std::string referenceStr;
 
@@ -177,6 +188,9 @@ public:
         int dataLength = 0;
         int precisionP = 0;
         int precisionS = 0;
+
+        /** Used during migrations. */
+        int version = 0;
 
         //----------------------------------------------------------------------
         // Attributes
@@ -221,9 +235,13 @@ public:
 
         const std::string getName() const { return name; }
         const std::string getDbName() const { return dbName; }
+        const std::string getDbNameGenerated() const { return dbNameGenerated; }
+        int getVersion() const { return version; }
 
         Table & setName(const std::string &value) { name = value; return *this; }
         Table & setDbName(const std::string &value) { dbName = value; return *this; }
+        Table & setDbNameGenerated(const std::string &value) { dbNameGenerated = value; return *this; }
+        Table &  setVersion(const int value) { version = value; return *this; }
 
         Column::Pointer createColumn(const std::string &colName, Column::DataType dt);
         const Column::Pointer findColumn(const std::string &colName) const;
@@ -240,14 +258,23 @@ public:
     private:
         Column::Vector	columns;
 
-        /** This is the name within C++ */
+        /** This is the class name within the generated code */
         std::string	name;
 
-        /** This is the column name */
+        /** This is the table name */
         std::string	dbName;
+
+        /**
+         * This gets used in migrations. If this name doesn't match dbName, either we're a new table
+         * Or the name was changed.
+         */
+        std::string dbNameGenerated;
 
         /** The GUI doesn't know about this yet. */
         bool isMap = false;
+
+        /** This is used for migrations. It gets set when the table is created. Columns are separate. */
+        int version = 0;
     };
 
     //======================================================================
@@ -263,6 +290,7 @@ public:
         static const char * NAME_CPP;
         static const char * NAME_CPP_DBACCESS;
         static const char * NAME_JAVA;
+        static const char * NAME_FLYWAY;
 
         virtual ~Generator();
 
@@ -315,12 +343,56 @@ public:
     };
 
     //======================================================================
+    // Database Connections. Currently we support a limited set of choices.
+    //======================================================================
+    class Database: public ShowLib::JSONSerializable {
+    public:
+        using Pointer = std::shared_ptr<Database>;
+        using Vector = ShowLib::JSONSerializableVector<Database>;
+
+        static const char * DRIVER_POSTGRESQL;
+
+        virtual ~Database();
+
+        void fromJSON(const JSON &) override;
+        JSON toJSON() const override;
+
+        std::string getEnvName() const { return envName; }
+        std::string getDriver() const { return driver; }
+        std::string getHost() const { return host; }
+        int getPort() const { return port; }
+        std::string getDbName() const { return dbName; }
+        std::string getUsername() const { return username; }
+        std::string getPassword() const { return password; }
+
+        Database & setEnvName(const std::string &value) { envName = value; return *this; }
+        Database & setDriver(const std::string &value) { driver = value; return *this; }
+        Database & setHost(const std::string &value) { host = value; return *this; }
+        Database & setPort(int value) { port = value; return *this; }
+        Database & setDbName(const std::string &value) { dbName = value; return *this; }
+        Database & setUsername(const std::string &value) { username = value; return *this; }
+        Database & setPassword(const std::string &value) { password = value; return *this; }
+
+    private:
+        std::string envName = "default";
+        std::string driver = "PostgreSql";
+        std::string host;
+        int port = 0;
+        std::string dbName;
+        std::string username;
+        std::string password;
+    };
+
+    //======================================================================
     // Methods
     //======================================================================
     bool deepEquals(const DataModel &orig) const;
 
     void fromJSON(const JSON &) override;
     JSON toJSON() const override;
+
+    int getGeneratedVersion() const { return generatedVersion; }
+    DataModel & setGeneratedVersion(int value) { generatedVersion = value; return *this; }
 
     const std::string & getName() const { return name; }
     void setName(const std::string &value) { name = value; markDirty(); }
@@ -344,11 +416,16 @@ public:
     const Generator::Vector & getGenerators() const { return generators; }
     void pushGenerator(DataModel::Generator::Pointer);
 
+    const Database::Vector & getDatabases() const { return databases; }
+    void pushDatabase(DataModel::Database::Pointer);
+
 private:
     std::string name;
     Table::Vector tables;
     Generator::Vector generators;
+    Database::Vector databases;
     bool isDirty = false;
+    int generatedVersion = 0;
 };
 
 std::string toString(DataModel::Column::DataType dt);

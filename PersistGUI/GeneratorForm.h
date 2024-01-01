@@ -36,6 +36,7 @@ private:
     void showForCPP();
     void showForCPP_DBAccess();
     void showForJava();
+    void showForFlyway();
 
     Ui::GeneratorForm *ui;
     DataModel & model;

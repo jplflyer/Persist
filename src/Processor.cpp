@@ -9,6 +9,7 @@
 #include "CodeGenerator_SQL.h"
 #include "CodeGenerator_DB.h"
 #include "CodeGenerator_Java.h"
+#include "CodeGenerator_Flyway.h"
 #include "Processor.h"
 
 using namespace ShowLib;
@@ -151,6 +152,10 @@ Processor::generate() {
         else if (name == Generator::NAME_JAVA) {
             CodeGenerator_Java javaGen(model, generator);
             javaGen.generate();
+        }
+        else if (name == Generator::NAME_FLYWAY) {
+            CodeGenerator_Flyway flywayGen(model, generator);
+            flywayGen.generate();
         }
     }
 }

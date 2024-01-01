@@ -21,11 +21,28 @@ CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m, DataModel::Generator::Pointer
 }
 
 /**
+ * This constructor is used when we're subclassed.
+ */
+CodeGenerator_SQL::CodeGenerator_SQL(const std::string & _name, DataModel &_model, DataModel::Generator::Pointer genInfo)
+    : CodeGenerator(_name, _model, genInfo)
+{
+}
+
+/**
  * Generate our output file.
  */
 void
 CodeGenerator_SQL::generate() {
-    std::ofstream ofs{generatorInfo->getOutputBasePath()};
+    generateTo(generatorInfo->getOutputBasePath());
+}
+
+/**
+ * Generate our output file. We broke this out of generate() so we can subclass
+ * (for Flyway) and specify an alternate location.
+ */
+void
+CodeGenerator_SQL::generateTo(const string &filename) {
+    std::ofstream ofs{ filename };
 
     ofs << "BEGIN;" << endl;
 

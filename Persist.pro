@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-CONFIG += console c++17
+CONFIG += console c++20
 CONFIG -= app_bundle
 CONFIG -= qt
 CONFIG += sdk_no_version_check
@@ -13,6 +13,7 @@ SOURCES += \
     src/CodeGenerator.cpp \
     src/CodeGenerator_CPP.cpp \
     src/CodeGenerator_DB.cpp \
+    src/CodeGenerator_Flyway.cpp \
     src/CodeGenerator_Java.cpp \
     src/CodeGenerator_SQL.cpp \
     src/DataModel.cpp \
@@ -26,6 +27,7 @@ HEADERS += \
     src/CodeGenerator.h \
     src/CodeGenerator_CPP.h \
     src/CodeGenerator_DB.h \
+    src/CodeGenerator_Flyway.h \
     src/CodeGenerator_Java.h \
     src/CodeGenerator_SQL.h \
     src/DataModel.h \
@@ -34,3 +36,5 @@ HEADERS += \
     tests/TestDatabase.h \
     tests/UnitTesting.h \
     tests/main-test.h
+
+FORMS +=

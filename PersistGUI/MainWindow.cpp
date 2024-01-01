@@ -16,6 +16,7 @@
 using Column = DataModel::Column;
 using Table = DataModel::Table;
 using Generator = DataModel::Generator;
+using Database = DataModel::Database;
 
 using namespace ShowLib;
 
@@ -46,6 +47,14 @@ MainWindow::MainWindow(QWidget *parent)
     tWidget->setHorizontalHeaderLabels(genHeaders);
     tWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
+    tWidget = ui->databaseTable;
+    tWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tWidget->setColumnCount(5);
+    QStringList dbHeaders {"Environment", "Driver", "Host", "Port", "Database"};
+    tWidget->setHorizontalHeaderLabels(dbHeaders);
+    tWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
     // Do this in case I save the MainWindow.ui with a different tab selected.
     ui->tabWidget->setCurrentIndex(0);
 
@@ -65,6 +74,10 @@ MainWindow::MainWindow(QWidget *parent)
     // The Generators.
     connect(ui->generatorsTable, &QTableWidget::cellDoubleClicked, this, &MainWindow::genDoubleClicked);
     connect(ui->newGeneratorPB,  &QPushButton::clicked,            this, &MainWindow::createGenerator);
+
+    // Databases
+    connect(ui->databaseTable,  &QTableWidget::cellDoubleClicked, this, &MainWindow::dbDoubleClicked);
+    connect(ui->newDatabasePB,  &QPushButton::clicked,            this, &MainWindow::createDatabase);
 }
 
 /**
@@ -152,6 +165,7 @@ void MainWindow::load(const std::string fileName) {
 
         showTables();
         showGenerators();
+        showDatabases();
     }
 }
 
@@ -325,8 +339,8 @@ MainWindow::showGenerators() {
         table->setItem(rowIndex, 1, new QTableWidgetItem(QString::fromStdString(gPtr->getDescription())));
         ++rowIndex;
     }
-
 }
+
 /**
  * Double-clicked a row in the Tables table. Pop up the TableForm for it.
  */
@@ -376,4 +390,76 @@ void MainWindow::createGenerator()
  */
 void MainWindow::generatorChanged(DataModel::Generator::Pointer) {
     showGenerators();
+}
+
+//======================================================================
+//
+//======================================================================
+
+/**
+ * Display the list of databases.
+ */
+void
+MainWindow::showDatabases() {
+    QTableWidget * table = ui->databaseTable;
+    int rowIndex = 0;
+
+    const Database::Vector dbList = model.getDatabases();
+    table->setRowCount(dbList.size());
+    for (const Database::Pointer & db: dbList) {
+        table->setItem(rowIndex, 0, new QTableWidgetItem(QString::fromStdString( db->getEnvName() )));
+        table->setItem(rowIndex, 1, new QTableWidgetItem(QString::fromStdString( db->getDriver() )));
+        table->setItem(rowIndex, 2, new QTableWidgetItem(QString::fromStdString( db->getHost() )));
+        table->setItem(rowIndex, 3, new QTableWidgetItem(QString::fromStdString( std::to_string(db->getPort()) )));
+        table->setItem(rowIndex, 4, new QTableWidgetItem(QString::fromStdString( db->getDbName() )));
+        ++rowIndex;
+    }
+}
+
+/**
+ * Double-clicked a field in the Databases table. Pop up the window for it.
+ */
+void MainWindow::dbDoubleClicked(int row, int ) {
+    const Database::Vector & databases = model.getDatabases();
+
+    // This shouldn't happen.
+    if (static_cast<size_t>(row) > databases.size()) {
+        return;
+    }
+
+    Database::Pointer db = databases[row];
+    for (DatabaseForm *dbForm: databaseForms) {
+        if (dbForm->getDatabase() == db) {
+            dbForm->reload();
+            dbForm->show();
+            dbForm->raise();
+            dbForm->activateWindow();
+        }
+    }
+
+    DatabaseForm * newForm = new DatabaseForm(model, db);
+    databaseForms.push_back(newForm);
+    connect(newForm, &DatabaseForm::databaseChanged, this, &MainWindow::databaseChanged);
+    newForm->show();
+}
+
+/**
+ * Create a new database.
+ */
+void MainWindow::createDatabase() {
+    Database::Pointer newDb = std::make_shared<Database>();
+    model.pushDatabase(newDb);
+    showDatabases();
+
+    DatabaseForm * newForm = new DatabaseForm(model, newDb);
+    databaseForms.push_back(newForm);
+    connect(newForm, &DatabaseForm::databaseChanged, this, &MainWindow::databaseChanged);
+    newForm->show();
+}
+
+/**
+ * Something was changed about this db.
+ */
+void MainWindow::databaseChanged(DataModel::Database::Pointer) {
+    showDatabases();
 }

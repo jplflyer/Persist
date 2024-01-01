@@ -45,6 +45,7 @@ GeneratorForm::GeneratorForm(DataModel &m, DataModel::Generator::Pointer gen, QW
     ui->typeCB->addItem( DataModel::Generator::NAME_CPP );
     ui->typeCB->addItem( DataModel::Generator::NAME_CPP_DBACCESS );
     ui->typeCB->addItem( DataModel::Generator::NAME_JAVA );
+    ui->typeCB->addItem( DataModel::Generator::NAME_FLYWAY );
 
     // Connect the slots.
     connect(ui->typeCB,               &QComboBox::currentIndexChanged,  this, &GeneratorForm::typeSelected);
@@ -65,17 +66,21 @@ GeneratorForm::GeneratorForm(DataModel &m, DataModel::Generator::Pointer gen, QW
         ui->typeCB->setCurrentIndex(0);
         typeSelected(0);
     }
-    else if (generator->getName() == Generator::NAME_SQL) {
+    else if (generator->getName() == Generator::NAME_CPP) {
         ui->typeCB->setCurrentIndex(1);
         typeSelected(1);
     }
-    else if (generator->getName() == Generator::NAME_SQL) {
+    else if (generator->getName() == Generator::NAME_CPP_DBACCESS) {
         ui->typeCB->setCurrentIndex(2);
         typeSelected(2);
     }
-    else if (generator->getName() == Generator::NAME_SQL) {
+    else if (generator->getName() == Generator::NAME_JAVA) {
         ui->typeCB->setCurrentIndex(3);
         typeSelected(3);
+    }
+    else if (generator->getName() == Generator::NAME_FLYWAY) {
+        ui->typeCB->setCurrentIndex(4);
+        typeSelected(4);
     }
 
     //----------------------------------------------------------------------
@@ -222,6 +227,31 @@ void GeneratorForm::showForJava() {
 }
 
 /**
+ * This generator is for Flyway.
+ */
+void GeneratorForm::showForFlyway() {
+    ui->basePathTF->setEnabled(true);
+    ui->basePathHelp->setText("The Flyway base directory where flyway.toml will be stored. This can be relative to the current location when DataModeler --gen is run.");
+
+    ui->classPathL->hide();
+    ui->classPathTF->hide();
+    ui->classPathHelp->hide();
+
+    ui->authorizationTableL->hide();
+    ui->authorizationTableCB->hide();
+    ui->authorizationTableHelp->hide();
+
+    ui->extendsL->hide();
+    ui->extendsTF->hide();
+    ui->extendsHelp->hide();
+    ui->implementsL->hide();
+    ui->implementsTF->hide();
+    ui->implementsHelp->hide();
+
+    ui->withSpringTags->hide();
+}
+
+/**
  * They selected a type of generator. Based on which one they selected, we disable some fields and change the help text.
  */
 void GeneratorForm::typeSelected(int index) {
@@ -230,6 +260,7 @@ void GeneratorForm::typeSelected(int index) {
         case 1: generator->setName(Generator::NAME_CPP); showForCPP(); break;
         case 2: generator->setName(Generator::NAME_CPP_DBACCESS); showForCPP_DBAccess(); break;
         case 3: generator->setName(Generator::NAME_JAVA); showForJava(); break;
+        case 4: generator->setName(Generator::NAME_FLYWAY); showForFlyway(); break;
     }
     emit generatorChanged(generator);
 }

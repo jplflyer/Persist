@@ -16,6 +16,9 @@ const char * DataModel::Generator::NAME_SQL = "SQL";
 const char * DataModel::Generator::NAME_CPP = "C++";
 const char * DataModel::Generator::NAME_CPP_DBACCESS = "C++ DBAccess";
 const char * DataModel::Generator::NAME_JAVA = "Java";
+const char * DataModel::Generator::NAME_FLYWAY = "Flyway";
+
+const char * DataModel::Database::DRIVER_POSTGRESQL = "PostgreSql";
 
 /**
  * Do a deep compare against this other DataModel.
@@ -47,6 +50,8 @@ DataModel::fromJSON(const JSON &json)  {
     name = stringValue(json, "name");
     tables.fromJSON(jsonArray(json, "tables"));
     generators.fromJSON(jsonArray(json, "generators"));
+    databases.fromJSON(jsonArray(json, "databases"));
+    generatedVersion = intValue(json, "generatedVersion");
 }
 
 /**
@@ -58,6 +63,11 @@ JSON DataModel::toJSON() const {
     json["name"] = name;
     json["tables"] = tables.toJSON();
     json["generators"] = generators.toJSON();
+    json["databases"] = databases.toJSON();
+
+    if (generatedVersion > 0) {
+        json["generatedVersion"] = generatedVersion;
+    }
 
     return json;
 }
@@ -149,6 +159,10 @@ DataModel::sortAllColumns() {
 
 void DataModel::pushGenerator(DataModel::Generator::Pointer gen) {
     generators.push_back(gen);
+}
+
+void DataModel::pushDatabase(DataModel::Database::Pointer db) {
+    databases.push_back(db);
 }
 
 /**
@@ -507,6 +521,8 @@ void
 DataModel::Table::fromJSON(const JSON &json)  {
     name = stringValue(json, "name");
     dbName = camelToLower(stringValue(json, "dbName"));
+    dbNameGenerated = stringValue(json, "dbNameGenerated");
+    version = intValue(json, "version");
 
     // Do this manually so we can pass in the shared pointer to ourself.
     JSON columnsJSON = jsonArray(json, "columns");
@@ -527,7 +543,11 @@ JSON  DataModel::Table::toJSON() const {
 
     json["name"] = name;
     json["dbName"] = dbName;
+    json["dbNameGenerated"] = dbNameGenerated;
     json["columns"] = columns.toJSON();
+    if (version > 0) {
+        json["version"] = version;
+    }
 
     return json;
 }
@@ -683,9 +703,11 @@ const DataModel::Column::Vector DataModel::Table::getAllReferencesToTable(const 
 // Generators definitions.
 //======================================================================
 
+/**
+ * Destructor.
+ */
 DataModel::Generator::~Generator() {
 }
-
 
 /**
  * Populate from JSON.
@@ -716,3 +738,46 @@ JSON DataModel::Generator::toJSON() const {
     }
     return json;
 }
+
+//======================================================================
+// Database definitions.
+//======================================================================
+
+/**
+ * Destructor.
+ */
+DataModel::Database::~Database() {
+}
+
+/**
+ * Populate from JSON.
+ */
+void DataModel::Database::fromJSON(const JSON &json) {
+    envName = stringValue(json, "envName");
+    driver = stringValue(json, "driver");
+    host = stringValue(json, "host");
+    port = intValue(json, "port");
+    dbName = stringValue(json, "dbName");
+    username = stringValue(json, "username");
+    password = stringValue(json, "password");
+}
+
+/**
+ * Write to JSON.
+ */
+JSON DataModel::Database::toJSON() const {
+    JSON json = JSON::object();
+
+    json["envName"] = envName;
+    json["driver"] = driver;
+    json["host"] = host;
+    json["port"] = port;
+    json["dbName"] = dbName;
+    json["username"] = username;
+    json["password"] = password;
+
+    return json;
+}
+
+
+

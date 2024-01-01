@@ -20,7 +20,7 @@ TEST_BIN=test-bin${MACAPPEND}
 
 VPATH := ${SRCDIR}:${TEST_SRC}
 INCLUDES += -I../ShowLib/include -I../ShowLib
-LDFLAGS += -L. -L../ShowLib/lib -lshow${MACAPPEND} -lz -llog4cplus -lpthread -lstdc++ -lm -ldl
+LDFLAGS += -L. -L../ShowLib/lib -lshow${MACAPPEND} -lz -llog4cplus -lpthread -lm -ldl
 
 SRC_NOSORT := $(wildcard src/*.cpp)
 SRC_SORTED := $(sort ${SRC_NOSORT})

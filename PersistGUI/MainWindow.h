@@ -10,6 +10,7 @@
 #include "DataModel.h"
 #include "TableForm.h"
 #include "GeneratorForm.h"
+#include "DatabaseForm.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -45,6 +46,11 @@ private slots:
     void createGenerator();
     void generatorChanged(DataModel::Generator::Pointer);
 
+    // The Databases tab
+    void dbDoubleClicked(int row, int column);
+    void createDatabase();
+    void databaseChanged(DataModel::Database::Pointer);
+
 private:
     void fixRecents();
     void fixButtons();
@@ -52,6 +58,7 @@ private:
 
     void showTables();
     void showGenerators();
+    void showDatabases();
 
     Ui::MainWindow *ui;
     QMenu * recentFilesMenu = nullptr;
@@ -62,5 +69,7 @@ private:
     std::string modelFileName;
 
     std::vector<GeneratorForm *> generatorForms;
+
+    std::vector<DatabaseForm *> databaseForms;
 
 };
