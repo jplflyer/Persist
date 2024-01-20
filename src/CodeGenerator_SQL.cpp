@@ -1,21 +1,13 @@
 #include <iostream>
 #include <fstream>
 
+#include <showlib/CommonUsing.h>
 #include "CodeGenerator_SQL.h"
-
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::string;
-
-using Table = DataModel::Table;
-using Column = DataModel::Column;
-using DataType = DataModel::Column::DataType;
 
 /**
  * Constructor.
  */
-CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m, DataModel::Generator::Pointer genInfo)
+CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m, Generator::Pointer genInfo)
     : CodeGenerator("CodeGenerator_SQL", m, genInfo)
 {
 }
@@ -23,7 +15,7 @@ CodeGenerator_SQL::CodeGenerator_SQL(DataModel &m, DataModel::Generator::Pointer
 /**
  * This constructor is used when we're subclassed.
  */
-CodeGenerator_SQL::CodeGenerator_SQL(const std::string & _name, DataModel &_model, DataModel::Generator::Pointer genInfo)
+CodeGenerator_SQL::CodeGenerator_SQL(const std::string & _name, DataModel &_model, Generator::Pointer genInfo)
     : CodeGenerator(_name, _model, genInfo)
 {
 }
@@ -87,7 +79,7 @@ CodeGenerator_SQL::generateTo(const string &filename) {
  * );
  */
 void
-CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const DataModel::Table &table) {
+CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const Table &table) {
     //======================================================================
     // If the primary key is not a Serial type, then we manually create
     // the sequence we'll use.
@@ -108,37 +100,11 @@ CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const DataModel::Table &
 
     bool needComma = false;
     for (const Column::Pointer &column: table.getColumns()) {
-        DataType dt = column->getDataType();
 
         if (needComma) {
             ofs << "," << endl;
         }
-
-        ofs << "        " << column->getDbName() << " " << toString(dt);
-
-        if (dataTypeHasLength(dt) && column->getLength() > 0) {
-            ofs << "(" << column->getLength() << ")";
-        }
-
-        if (dataTypeHasPrecision(dt) && column->getPrecisionP() > 0) {
-            ofs << "(" << column->getPrecisionP();
-            if (column->getPrecisionS() > 0) {
-                ofs << ", " << column->getPrecisionS();
-            }
-            ofs << ")";
-        }
-
-        if (column->getIsPrimaryKey()) {
-            ofs << " PRIMARY KEY";
-        }
-        if (!column->getNullable()) {
-            ofs << " NOT NULL";
-        }
-
-
-        if (column->getIsPrimaryKey() && needSequence) {
-            ofs << " DEFAULT nextval('" << sequenceName << "')";
-        }
+        generateDefinitionFor(ofs, *column);
 
         needComma = true;
     }
@@ -154,6 +120,44 @@ CodeGenerator_SQL::generateForTable(std::ofstream &ofs, const DataModel::Table &
     }
 
 }
+
+/**
+ * We're in either a "CREATE TABLE" or "ALTER TABLE foo ADD COLUMN" and we want the rest.
+ */
+std::ofstream & CodeGenerator_SQL::generateDefinitionFor(std::ofstream &ofs, const Column &column) {
+    DataType dt = column.getDataType();
+    ofs << "        " << column.getDbName() << " " << toString(dt);
+
+    if (dataTypeHasLength(dt) && column.getLength() > 0) {
+        ofs << "(" << column.getLength() << ")";
+    }
+
+    if (dataTypeHasPrecision(dt) && column.getPrecisionP() > 0) {
+        ofs << "(" << column.getPrecisionP();
+        if (column.getPrecisionS() > 0) {
+            ofs << ", " << column.getPrecisionS();
+        }
+        ofs << ")";
+    }
+
+    if (column.getIsPrimaryKey()) {
+        ofs << " PRIMARY KEY";
+    }
+    if (!column.getNullable()) {
+        ofs << " NOT NULL";
+    }
+
+
+    if (column.getIsPrimaryKey() && !dataTypeIsSerial(column.getDataType()) ) {
+        Table::Pointer table = column.getOurTable().lock();
+        string sequenceName = table->getDbName() + "_" + column.getDbName() + "_seq";
+
+        ofs << " DEFAULT nextval('" << sequenceName << "')";
+    }
+
+    return ofs;
+}
+
 
 /**
  * ALTER TABLE child_table

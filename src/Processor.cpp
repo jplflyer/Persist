@@ -19,123 +19,58 @@ using Generator = DataModel::Generator;
 /**
  * Working with this file. If it exists, read it.
  */
-Processor &
-Processor::setFileName(const std::string &value) {
+Processor & Processor::setFileName(const std::string &value) {
     fileName = value;
+    model.setFilename(fileName);
 
     string contents = FileUtilities::readFile(fileName);
     if (contents.length() > 0) {
         JSON json = JSON::parse(contents);
         model.fromJSON(json);
-        if (!model.fixReferences()) {
-            exit(2);
-        }
     }
 
     return *this;
 }
 
-
 /**
- * We want to create / update this table.
+ * During generate(), we can override which of the generators we'll actually do. This won't let you
+ * create a new generator to run, but you could do just a single one instead of all of them.
  */
-DataModel::Table::Pointer
-Processor::specifyTable(const std::string &tableName)
-{
-    DataModel::Table::Pointer table = model.findTable(tableName);
-
-    if (table == nullptr) {
-        table = model.createTable(tableName);
-    }
-
-    return table;
+void Processor::addGenerator(const std::string &name) {
+    generatorNames.add(name);
 }
 
 /**
- * We want to create / update this table.
- *
- * colData is of form name[,type]
- * type can be one of the simple types or:
- * 		varchar[(length)]
- * 		numeric[(precision[,scale])]
+ * We can initialize a new model.
  */
-DataModel::Column::Pointer
-Processor::specifyColumn(DataModel::Table & table, const std::string &colData) {
-    DataModel::Column::Pointer column;
-    DataModel::Column::DataType dt;
-    int length = 0;
-    int precision = 0;
-    int scale = 0;
-    bool haveDatatype = false;
-
-    std::vector<string> parts = split(colData, ":");
-    string colName = parts.at(0);
-
-    if (colName.length() == 0) {
-        cerr << "Specify Column requires a column name: " << colData << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    if (parts.size() == 2) {
-        string dtStr = parts.at(1);
-        std::vector<string> dtParts = splitWithParens(dtStr, ",");
-        haveDatatype = true;
-
-        dt = toDataType(dtParts.at(0));
-        if (dataTypeHasLength(dt)) {
-            if (dtParts.size() == 2) {
-                length = std::stoi(dtParts.at(1));
-            }
-        }
-        else if (dataTypeHasPrecision(dt) && dtParts.size() > 1) {
-            precision = std::stoi(dtParts.at(1));
-            if (dtParts.size() > 2) {
-                scale = std::stoi(dtParts.at(2));
-            }
-        }
-    }
-
-    column = table.findColumn(colName);
-
-    if (column == nullptr) {
-        if (!haveDatatype) {
-            cerr << "Column not known and no data type provided: " << colData << endl;
-            exit(EXIT_FAILURE);
-        }
-        column = table.createColumn(colName, dt);
-    }
-    column->setDataType(dt)
-            .setLength(length)
-            .setPrecision(precision, scale);
-
-    return column;
-}
-
-/**
- * Fix the references.
- */
-void
-Processor::fixReferences() {
-    model.fixReferences();
-}
-
-/**
- *
- */
-void
-Processor::writeModel() {
+void Processor::writeModel() {
     std::ofstream ofs{fileName};
     JSON json = model.toJSON();
     ofs << json.dump(2) << endl;
 }
 
+void Processor::listGenerators() {
+    for (const Generator::Pointer & generator: model.getGenerators()) {
+        string name = generator->getName();
+
+        if (generatorNames.size() > 0 && !generatorNames.contains(name)) {
+            continue;
+        }
+
+        cout << name << endl;
+    }
+}
+
 /**
  * Perform code generation.
  */
-void
-Processor::generate() {
-    for (Generator::Pointer generator: model.getGenerators()) {
+void Processor::generate() {
+    for (const Generator::Pointer & generator: model.getGenerators()) {
         string name = generator->getName();
+
+        if (generatorNames.size() > 0 && !generatorNames.contains(name)) {
+            continue;
+        }
 
         if (name == Generator::NAME_SQL) {
             CodeGenerator_SQL sqlGen(model, generator);

@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdio>
 #include <fstream>
 
 #include <showlib/CommonUsing.h>
@@ -92,29 +93,145 @@ void CodeGenerator_Flyway::generate_ConfigFiles() {
  * @return True if there were changes and the model should be updated, False if not.
  */
 bool CodeGenerator_Flyway::generate_Migrations() {
-    int genVersion = model.getGeneratedVersion();
+    genVersion = model.getGeneratedVersion();
 
     //----------------------------------------------------------------------
     // If this is the first generation...
     //----------------------------------------------------------------------
     if (genVersion == 0) {
         generateTo( migrationFileName("CreateDatabase"));
+        for (const Table::Pointer & table: model.getTables()) {
+            setGeneratedNames(*table);
+        }
         return true;
     }
 
-    for (const Table::Pointer & table: model.getTables()) {
-        // Is this a new table?
-        if (table->getVersion() == 0) {
-        }
+    string migrationName = model.getLatestMigrationName().length() > 0 ? model.getLatestMigrationName() : "Migration";
+    string fname = migrationFileName(migrationName);
+    std::ofstream ofs{ fname };
+    bool didWork = false;
+    ofs << "BEGIN;\n";
 
-        else {
-            if (table->getVersion() > genVersion) {
+    for (const Table::Pointer & table: model.getTables()) {
+        if (generate_TableMigrations(ofs, table)) {
+            didWork = true;
+        }
+    }
+
+    ofs << "COMMIT;\n";
+    ofs.close();
+    if (!didWork) {
+        std::remove(fname.c_str());
+    }
+
+    return didWork;
+}
+
+/**
+ * Handle migrations for this table.
+ *
+ * We might have changes of:
+ *
+ *	-Table Renames
+ *	-Column:
+ *		-Renames
+ *		-Data type changes
+ *		-New
+ *		-Removed
+ *
+ * @return if we did anything.
+ */
+bool CodeGenerator_Flyway::generate_TableMigrations(std::ofstream &ofs, const Table::Pointer &table) {
+    bool didWork = false;
+
+    // Is this a new table?
+    if (table->getVersion() == 0) {
+        ofs << "\n";
+        generateForTable(ofs, *table);
+        setGeneratedNames(*table);
+        didWork = true;
+    }
+
+    else {
+        if (table->getVersion() > genVersion) {
+            ofs << "\n";
+
+            generate_TableNameChanges(ofs, table);
+            generate_ColumnChanges(ofs, table);
+
+            setGeneratedNames(*table);
+            didWork = true;
+        }
+    }
+
+    return didWork;
+}
+
+/**
+ * @return if we did anything.
+ */
+bool CodeGenerator_Flyway::generate_TableNameChanges(std::ofstream &ofs, const Table::Pointer &table) {
+    bool didWork = false;
+
+    if (!table->getDbNameGenerated().empty() && table->getDbName() != table->getDbNameGenerated()) {
+        ofs << "ALTER TABLE " << table->getDbNameGenerated() << " RENAME TO " << table->getDbName() << ";\n";
+
+        didWork = true;
+    }
+    return didWork;
+}
+
+/**
+ *		-Renames
+ *		-Data type changes
+ *		-New
+ *		-Removed
+ */
+bool CodeGenerator_Flyway::generate_ColumnChanges(std::ofstream &ofs, const Table::Pointer &table) {
+    bool didWork = false;
+
+    for (const Column::Pointer & col: table->getColumns()) {
+        if (col->getVersion() > genVersion) {
+            // Is it a new column?
+            if (col->getDbNameGenerated().empty()) {
+                ofs << "ALTER TABLE " << table->getDbNameGenerated()
+                    << " ADD COLUMN ";
+                generateDefinitionFor(ofs, *col);
+                ofs << ";\n";
+                didWork = true;
+            }
+
+            else {
+                // Otherwise it might be a column name change.
+                if (col->getDbName() != col->getDbNameGenerated()) {
+                    ofs << "ALTER TABLE " << table->getDbNameGenerated()
+                        << " RENAME COLUMN " << col->getDbNameGenerated() << " TO " << col->getDbName()
+                        ;
+                    didWork = true;
+                }
+
+                // It could also be a different datatype.
+                if (col->hasDataTypeChanged()) {
+                    ofs << "ALTER TABLE " << table->getDbNameGenerated()
+                        << " ALTER COLUMN ";
+                    generateDefinitionFor(ofs, *col);
+                    ofs << ";\n";
+                    didWork = true;
+                }
             }
         }
     }
 
-    return false;
+    for (const Column::Pointer &col: table->getDeletedColumns()) {
+        ofs << "ALTER TABLE " << table->getDbNameGenerated() << " REMOVE COLUMN " << col->getDbNameGenerated() << ";\n";
+        didWork = true;
+    }
+    table->clearDeletedColumns();
+
+    return didWork;
 }
+
+
 
 /**
  * Return a migration filename. We assumed versioned migrations of the format:
@@ -130,7 +247,32 @@ string CodeGenerator_Flyway::migrationFileName(const string &comment) {
 }
 
 /**
+ * We've done the generation for this table. Update accordingly.
+ */
+void CodeGenerator_Flyway::setGeneratedNames(Table &table) {
+    int genVersion = model.getGeneratedVersion() + 1;
+
+    table.setVersion(genVersion)
+        .setDbNameGenerated(table.getDbName())
+        ;
+
+    for (const Column::Pointer & col: table.getColumns()) {
+        col->setGeneratedValues();
+        if (col->getVersion() == 0) {
+            col->setVersion(genVersion);
+        }
+    }
+}
+
+/**
  * Write out the model.
  */
 void CodeGenerator_Flyway::saveModel() {
+    string filename = model.getFilename();
+    if (filename.length() > 0) {
+        std::ofstream ofs {filename};
+        JSON json = model.toJSON();
+        ofs << json.dump(2);
+        model.markClean();
+    }
 }

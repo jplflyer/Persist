@@ -338,5 +338,8 @@ std::string CodeGenerator_Java::javaType(DataModel::Column::DataType dt) {
         // Bit is fine but VarBit is probably not.
         case Column::DataType::Bit:				return "Boolean";
         case Column::DataType::VarBit:			return "Integer";
+
+        // This shouldn't happen.
+        case Column::DataType::Unknown:			return "Integer";
     }
 }

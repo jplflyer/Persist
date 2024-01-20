@@ -485,6 +485,47 @@ DataModel::Column::flagsStr() const {
     return retVal;
 }
 
+/**
+ * Has the data type changed from what was previously generated.
+ */
+bool DataModel::Column::hasDataTypeChanged() const {
+    return dataType != dataTypeGenerated
+        || dataLength != dataLengthGenerated
+        || precisionP != precisionPGenerated
+        || precisionS != precisionSGenerated
+        ;
+}
+
+/**
+ * These fields used in the Flyway generator (and maybe others in the future) to detect
+ * changes in column name and/or datatype. Once we've generated a migration, we want
+ * to set them.
+ */
+DataModel::Column & DataModel::Column::setGeneratedValues() {
+    dbNameGenerated = dbName;
+    dataTypeGenerated = dataType;
+    dataLengthGenerated = dataLength;
+    precisionPGenerated = precisionP;
+    precisionSGenerated = precisionS;
+
+    return *this;
+}
+
+/**
+ * Vector of Tables -- populate from JSON. This is special because
+ * Column wants a Table::Pointer
+ */
+void DataModel::Column_Vector::populate(Table::Pointer table, const JSON & json) {
+    for (auto iter = json.begin(); iter != json.end(); ++iter) {
+        const JSON obj = *iter;
+
+        Column::Pointer thisDiff = std::make_shared<Column>(table);
+        thisDiff->fromJSON(obj);
+        push_back(thisDiff);
+    }
+}
+
+
 //======================================================================
 // Tables.
 //======================================================================
@@ -524,15 +565,8 @@ DataModel::Table::fromJSON(const JSON &json)  {
     dbNameGenerated = stringValue(json, "dbNameGenerated");
     version = intValue(json, "version");
 
-    // Do this manually so we can pass in the shared pointer to ourself.
-    JSON columnsJSON = jsonArray(json, "columns");
-    for (auto iter = columnsJSON.begin(); iter != columnsJSON.end(); ++iter) {
-        const JSON obj = *iter;
-
-        Column::Pointer thisDiff = std::make_shared<Column>(shared_from_this());
-        thisDiff->fromJSON(obj);
-        columns.push_back(thisDiff);
-    }
+    columns.populate(shared_from_this(), jsonArray(json, "columns"));
+    deletedColumns.populate(shared_from_this(), jsonArray(json, "deletedColumns"));
 }
 
 /**
@@ -545,6 +579,7 @@ JSON  DataModel::Table::toJSON() const {
     json["dbName"] = dbName;
     json["dbNameGenerated"] = dbNameGenerated;
     json["columns"] = columns.toJSON();
+    json["deletedColumns"] = deletedColumns.toJSON();
     if (version > 0) {
         json["version"] = version;
     }
@@ -578,6 +613,14 @@ DataModel::Table::createColumn(const std::string &colName, DataModel::Column::Da
 }
 
 /**
+ * Delete a column.
+ */
+void DataModel::Table::deleteColumn(Column::Pointer col) {
+    columns.removeAll( [=](Column::Pointer c) { return c == col; } );
+    deletedColumns.push_back(col);
+}
+
+/**
  * Find this column.
  */
 const DataModel::Column::Pointer
@@ -604,6 +647,13 @@ DataModel::Table::sortColumns() {
             return first->getIsPrimaryKey() ||
                 ( !second->getIsPrimaryKey() && first->getName() < second->getName() );
         } );
+}
+
+/**
+ * We've done a Flyway migration and can forget any deleted columns.
+ */
+void DataModel::Table::clearDeletedColumns() {
+    deletedColumns.clear();
 }
 
 /**
@@ -698,6 +748,8 @@ const DataModel::Column::Vector DataModel::Table::getAllReferencesToTable(const 
 
     return vec;
 }
+
+
 
 //======================================================================
 // Generators definitions.

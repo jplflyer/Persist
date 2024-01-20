@@ -13,6 +13,12 @@ public:
     typedef ShowLib::JSONSerializableVector<DataModel> Vector;
 
     class Table;
+    class Column;
+
+    class Column_Vector: public ShowLib::JSONSerializableVector<Column> {
+    public:
+        void populate(std::shared_ptr<Table>, const JSON & json);
+    };
 
     /**
      * One column in a table.
@@ -21,7 +27,7 @@ public:
     {
     public:
         typedef std::shared_ptr<Column> Pointer;
-        typedef ShowLib::JSONSerializableVector<Column> Vector;
+        typedef Column_Vector Vector;
 
         /**
          * This is the list of datatypes a column can have and comes from the PostgreSQL 13.1
@@ -54,7 +60,9 @@ public:
             Time,			// Time of day without timezone
             TimeTZ,			// Time of day with timezone
             Timestamp,		// Date & time without TZ
-            TimestampTZ		// Date & time with tZ
+            TimestampTZ,	// Date & time with tZ
+
+            Unknown
         };
 
         typedef std::pair<std::string, DataModel::Column::DataType> DataTypePair;
@@ -125,7 +133,6 @@ public:
         Column & setRefPtrName(const std::string &value) { refPtrName = value; return *this; }
         Column & setReversePtrName(const std::string &value) { reversePtrName = value; return *this; }
         Column & setDbName(const std::string &value) { dbName = value; return *this; }
-        Column & setDbNameGenerated(const std::string &value) { dbNameGenerated = value; return *this; }
         Column & setVersion(int value) { version = value; return *this; }
 
         Column & setReferenceStr(const std::string &value) {
@@ -148,6 +155,9 @@ public:
         std::string fullName(bool useDbName = false) const;
         std::string precisionStr() const;
         std::string flagsStr() const;
+
+        Column & setGeneratedValues();
+        bool hasDataTypeChanged() const;
 
     private:
         /** What table contains us? */
@@ -183,11 +193,16 @@ public:
 
         /** Datatype. */
         DataType dataType = DataType::VarChar;
+        DataType dataTypeGenerated = DataType::Unknown;
 
         /** For fields that require a length */
         int dataLength = 0;
         int precisionP = 0;
         int precisionS = 0;
+
+        int dataLengthGenerated = 0;
+        int precisionPGenerated = 0;
+        int precisionSGenerated = 0;
 
         /** Used during migrations. */
         int version = 0;
@@ -244,11 +259,14 @@ public:
         Table &  setVersion(const int value) { version = value; return *this; }
 
         Column::Pointer createColumn(const std::string &colName, Column::DataType dt);
+        void deleteColumn(Column::Pointer);
         const Column::Pointer findColumn(const std::string &colName) const;
         const Column::Pointer findPrimaryKey() const;
 
         const Column::Vector & getColumns() const { return columns; }
+        const Column::Vector & getDeletedColumns() const { return deletedColumns; }
         void sortColumns();
+        void clearDeletedColumns();
 
         bool looksLikeMapTableFor(const Table &) const;
         const Column::Vector getAllReferencesToTable(const Table &) const;
@@ -257,6 +275,7 @@ public:
 
     private:
         Column::Vector	columns;
+        Column::Vector	deletedColumns;
 
         /** This is the class name within the generated code */
         std::string	name;
@@ -276,6 +295,7 @@ public:
         /** This is used for migrations. It gets set when the table is created. Columns are separate. */
         int version = 0;
     };
+
 
     //======================================================================
     // Generators.
@@ -394,8 +414,14 @@ public:
     int getGeneratedVersion() const { return generatedVersion; }
     DataModel & setGeneratedVersion(int value) { generatedVersion = value; return *this; }
 
+    const std::string &getFilename() const { return filename; }
+    DataModel & setFilename(const std::string &value) { filename = value; return *this; }
+
     const std::string & getName() const { return name; }
     void setName(const std::string &value) { name = value; markDirty(); }
+
+    const std::string & getLatestMigrationName() const { return latestMigrationName; }
+    void setLatestMigrationName(const std::string &value) { latestMigrationName = value; markDirty(); }
 
     Table::Pointer createTable(const std::string &tableName);
     const Table::Pointer findTable(const std::string &tableName) const;
@@ -420,7 +446,9 @@ public:
     void pushDatabase(DataModel::Database::Pointer);
 
 private:
+    std::string filename;
     std::string name;
+    std::string latestMigrationName;
     Table::Vector tables;
     Generator::Vector generators;
     Database::Vector databases;

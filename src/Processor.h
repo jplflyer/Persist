@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+
+#include <showlib/StringVector.h>
 #include "DataModel.h"
 
 /**
@@ -8,28 +10,18 @@
  */
 class Processor
 {
+public:
+    Processor & setFileName(const std::string &value);
+
+    void listGenerators();
+    void writeModel();
+    void generate();
+    void addGenerator(const std::string &genName);
+
 private:
     std::string		fileName;
     DataModel		model;
 
-    std::string		cppDirName = "./gensrc";
-    std::string		cppStubDirName;
-    std::string		cppIncludePath;
-
-    std::string		sqlFileName = "./db.sql";
-
-public:
-    Processor & setFileName(const std::string &value);
-    Processor & setCppDirName(const std::string &value) { cppDirName = value; return *this; }
-    Processor & setCppStubDirName(const std::string &value) { cppStubDirName = value; return *this; }
-    Processor & setCppIncludePath(const std::string &value) { cppIncludePath = value; return *this; }
-    Processor & setSQLFileName(const std::string &value) { sqlFileName = value; return *this; }
-
-    DataModel::Table::Pointer specifyTable(const std::string &value);
-    DataModel::Column::Pointer specifyColumn(DataModel::Table & table, const std::string &value);
-
-    void fixReferences();
-    void writeModel();
-    void generate();
+    ShowLib::StringVector generatorNames;
 };
 

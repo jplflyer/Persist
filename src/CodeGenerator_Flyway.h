@@ -19,12 +19,16 @@ private:
     void generate_ConfigFiles();
     bool generate_Migrations();
 
-    bool generate_TableMigrations(const Table::Pointer &);
+    bool generate_TableMigrations(std::ofstream &ofs, const Table::Pointer &);
+    bool generate_TableNameChanges(std::ofstream &ofs, const Table::Pointer &);
+    bool generate_ColumnChanges(std::ofstream &ofs, const Table::Pointer &);
 
+    void setGeneratedNames(Table &);
     void saveModel();
 
     std::string migrationFileName(const std::string &comment);
 
     int sequence = 0;
+    int genVersion;
 };
 
