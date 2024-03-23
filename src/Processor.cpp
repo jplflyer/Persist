@@ -27,6 +27,7 @@ Processor & Processor::setFileName(const std::string &value) {
     if (contents.length() > 0) {
         JSON json = JSON::parse(contents);
         model.fromJSON(json);
+        model.fixReferences();
     }
 
     return *this;

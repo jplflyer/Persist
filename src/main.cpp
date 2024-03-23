@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <iostream>
 
 #include <showlib/CommonUsing.h>
@@ -12,6 +13,8 @@ static Processor processor;
 
 int main(int argc, char **argv)
 {
+    cout << std::boolalpha;
+
     OptionHandler::ArgumentVector args;
 
     bool doCreate = false;

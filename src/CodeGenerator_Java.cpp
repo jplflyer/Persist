@@ -60,6 +60,7 @@ void CodeGenerator_Java::generate() {
  * Generate the POJO. Pojos go in the basePath + "/dbmodel/" + tableName.java
  */
 void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
+    Column::Vector foreignRefs = model.findReferencesTo(*table);
     bool isMemberTable = table->getName() == userTableName;
     string basePath = generatorInfo->getOutputBasePath() + "/" + slashedClassPath + "/dbmodel/";
     string path = basePath + table->getName() + ".java";
@@ -76,15 +77,9 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
         << "import lombok.Data;\n"
         << "import lombok.NoArgsConstructor;\n"
         << "import lombok.experimental.Accessors;\n"
+        << "import com.fasterxml.jackson.annotation.JsonIgnore;\n";
         ;
 
-    // Include JsonIgnore if we have any foreign keys or no-serialize fields
-    for (const Column::Pointer & column: table->getColumns()) {
-        if (column->isForeignKey() || !column->getSerialize()) {
-            ofs << "import com.fasterxml.jackson.annotation.JsonIgnore;\n";
-            break;
-        }
-    }
     for (const Column::Pointer & column: table->getColumns()) {
         if (javaType(column->getDataType()) == "LocalDateTime") {
             ofs << "import java.time.LocalDateTime;\n";
@@ -100,7 +95,15 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
             << "import java.util.List;\n"
             ;
     }
-    ofs << "import java.util.Set;\n";
+    if (!foreignRefs.empty()) {
+        ofs << "import java.util.Set;\n";
+    }
+    for (const Column::Pointer & column: table->getColumns()) {
+        if (column->isTimestamp()) {
+            ofs << "import java.sql.Timestamp;\n";
+            break;
+        }
+    }
 
     ofs  << "\n"
          << "@Entity\n"
@@ -208,7 +211,6 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
 
     // We also want reverse references. Remote tables that reference our primary key,
     // a OneToMany relationship.
-    Column::Vector foreignRefs = model.findReferencesTo(*table);
     for (const Column::Pointer &col: foreignRefs) {
         Table::Pointer refTable = col->getOurTable().lock();
         string refName = col->getReversePtrName().empty()
@@ -216,6 +218,7 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
              : col->getReversePtrName();
 
         ofs << "\n"
+            << "	@JsonIgnore\n"
             << "    @OneToMany(mappedBy =\"" << col->getName() << "\")\n"
             << "    private Set<" << refTable->getName() << "> " << refName << ";\n"
             ;
@@ -266,6 +269,10 @@ void CodeGenerator_Java::generateRepository(Table::Pointer table) {
     string path = basePath + table->getName() + "Repository.java";
 
     std::filesystem::create_directories(basePath);
+
+    if (std::filesystem::exists(path)) {
+        return;
+    }
 
     std::ofstream ofs{path};
 

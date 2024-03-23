@@ -413,6 +413,7 @@ public:
 
     int getGeneratedVersion() const { return generatedVersion; }
     DataModel & setGeneratedVersion(int value) { generatedVersion = value; return *this; }
+    DataModel & incrementGeneratedVersion() { ++generatedVersion; return *this; }
 
     const std::string &getFilename() const { return filename; }
     DataModel & setFilename(const std::string &value) { filename = value; return *this; }

@@ -95,11 +95,15 @@ void CodeGenerator_Flyway::generate_ConfigFiles() {
 bool CodeGenerator_Flyway::generate_Migrations() {
     genVersion = model.getGeneratedVersion();
 
+    cout << "Flyway Generator. genVersion: " << genVersion << endl;
+
     //----------------------------------------------------------------------
     // If this is the first generation...
     //----------------------------------------------------------------------
     if (genVersion == 0) {
-        generateTo( migrationFileName("CreateDatabase"));
+        string fname = migrationFileName("CreateDatabase");
+        cout << "First time generating: " << fname << endl;
+        generateTo( fname );
         for (const Table::Pointer & table: model.getTables()) {
             setGeneratedNames(*table);
         }
@@ -108,6 +112,7 @@ bool CodeGenerator_Flyway::generate_Migrations() {
 
     string migrationName = model.getLatestMigrationName().length() > 0 ? model.getLatestMigrationName() : "Migration";
     string fname = migrationFileName(migrationName);
+    cout << "Migration file: " << fname << endl;
     std::ofstream ofs{ fname };
     bool didWork = false;
     ofs << "BEGIN;\n";
@@ -120,6 +125,9 @@ bool CodeGenerator_Flyway::generate_Migrations() {
 
     ofs << "COMMIT;\n";
     ofs.close();
+
+    cout << "Did anything: " << didWork << endl;
+
     if (!didWork) {
         std::remove(fname.c_str());
     }
@@ -148,7 +156,6 @@ bool CodeGenerator_Flyway::generate_TableMigrations(std::ofstream &ofs, const Ta
     if (table->getVersion() == 0) {
         ofs << "\n";
         generateForTable(ofs, *table);
-        setGeneratedNames(*table);
         didWork = true;
     }
 
@@ -159,9 +166,13 @@ bool CodeGenerator_Flyway::generate_TableMigrations(std::ofstream &ofs, const Ta
             generate_TableNameChanges(ofs, table);
             generate_ColumnChanges(ofs, table);
 
-            setGeneratedNames(*table);
             didWork = true;
         }
+    }
+
+    if (didWork) {
+        setGeneratedNames(*table);
+        cout << "Changes in " << table->getName() << endl;
     }
 
     return didWork;
@@ -239,11 +250,11 @@ bool CodeGenerator_Flyway::generate_ColumnChanges(std::ofstream &ofs, const Tabl
  * V001__YYYYMMDDhhmmss_NNN_Comment.sql.
  */
 string CodeGenerator_Flyway::migrationFileName(const string &comment) {
-    string dirName = generatorInfo->getOutputBasePath() + "/migrations/";
+    string dirName = generatorInfo->getOutputBasePath() + "/migrations";
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
     string nowStr = date::format("%Y%m%d%H%M%S", now);
 
-    return dirName + "/V001__" + nowStr + "_" + ShowLib::toString(++sequence, 4) + "_" + comment + ".sql";
+    return dirName + "/V001__" + nowStr + "_" + comment + ".sql";
 }
 
 /**
@@ -270,6 +281,7 @@ void CodeGenerator_Flyway::setGeneratedNames(Table &table) {
 void CodeGenerator_Flyway::saveModel() {
     string filename = model.getFilename();
     if (filename.length() > 0) {
+        model.incrementGeneratedVersion();
         std::ofstream ofs {filename};
         JSON json = model.toJSON();
         ofs << json.dump(2);
