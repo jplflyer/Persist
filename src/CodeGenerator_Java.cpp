@@ -77,14 +77,25 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
         << "import lombok.Data;\n"
         << "import lombok.NoArgsConstructor;\n"
         << "import lombok.experimental.Accessors;\n"
-        << "import com.fasterxml.jackson.annotation.JsonIgnore;\n";
+        << "import com.fasterxml.jackson.annotation.JsonIgnore;\n"
+        << "import com.fasterxml.jackson.annotation.JsonIgnoreProperties;\n"
         ;
 
+    bool needList = isMemberTable || !foreignRefs.empty();
+    bool needTime = false;
     for (const Column::Pointer & column: table->getColumns()) {
-        if (javaType(column->getDataType()) == "LocalDateTime") {
-            ofs << "import java.time.LocalDateTime;\n";
-            break;
+        string jType = javaType(column->getDataType());
+        if (jType == "LocalDateTime" || jType == "Timestamp") {
+            needTime = true;
         }
+    }
+    if (needTime) {
+        ofs << "import java.time.LocalDateTime;\n"
+            << "import com.fasterxml.jackson.annotation.JsonFormat;\n"
+            << "import java.sql.Timestamp;\n";
+    }
+    if (needList) {
+        ofs << "import java.util.List;\n";
     }
 
     if (isMemberTable) {
@@ -92,28 +103,19 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
             << "import org.springframework.security.core.GrantedAuthority;\n"
             << "import org.springframework.security.core.authority.SimpleGrantedAuthority;\n"
             << "import java.util.Collection;\n"
-            << "import java.util.List;\n"
             ;
     }
-    if (!foreignRefs.empty()) {
-        ofs << "import java.util.Set;\n";
-    }
-    for (const Column::Pointer & column: table->getColumns()) {
-        if (column->isTimestamp()) {
-            ofs << "import java.sql.Timestamp;\n";
-            break;
-        }
-    }
 
-    ofs  << "\n"
-         << "@Entity\n"
-         << "@Data\n"
-         << "@Accessors(chain = true)\n"
-         << "@NoArgsConstructor\n"
-         << "@AllArgsConstructor\n"
-         << "@Builder\n"
-         << "public class " << table->getName()
-         ;
+    ofs << "\n"
+        << "@Entity\n"
+        << "@Data\n"
+        << "@Accessors(chain = true)\n"
+        << "@NoArgsConstructor\n"
+        << "@AllArgsConstructor\n"
+        << "@Builder\n"
+        << "@JsonIgnoreProperties(ignoreUnknown=true)\n"
+        << "public class " << table->getName()
+        ;
 
     if ( !extendsList.empty()) {
         string delim = " ";
@@ -169,6 +171,10 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
         if (!column->getSerialize()) {
             ofs << "    @JsonIgnore\n";
         }
+        std::string jType = javaType(column->getDataType());
+        if (jType == "LocalDateTime") {
+            ofs << "    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = \"uuuu-MM-dd'T'HH:mm:ss.SSS\")\n";
+        }
         ofs << "    " << javaType(column->getDataType()) << " " << column->getName() << ";\n"
             << "\n"
             ;
@@ -176,30 +182,35 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
 
     if (isMemberTable) {
         ofs << "\n"
+            << "    @JsonIgnore\n"
             << "    @Override\n"
             << "    public Collection<? extends GrantedAuthority> getAuthorities() {\n"
             << "        return List.of(new SimpleGrantedAuthority( isAdmin ? \"ADMIN\" : \"MEMBER\"));\n"
             << "     }\n"
             << "\n"
 
+            << "    @JsonIgnore\n"
             << "    @Override\n"
             << "    public boolean isAccountNonExpired() {\n"
             << "        return true;\n"
             << "    }\n"
             << "\n"
 
+            << "    @JsonIgnore\n"
             << "    @Override\n"
             << "    public boolean isAccountNonLocked() {\n"
             << "        return true;\n"
             << "    }\n"
             << "\n"
 
+            << "    @JsonIgnore\n"
             << "    @Override\n"
             << "    public boolean isCredentialsNonExpired() {\n"
             << "        return true;\n"
             << "    }\n"
             << "\n"
 
+            << "    @JsonIgnore\n"
             << "    @Override\n"
             << "    public boolean isEnabled() {\n"
             << "        return true;\n"
@@ -220,7 +231,7 @@ void CodeGenerator_Java::generatePOJO(DataModel::Table::Pointer table) {
         ofs << "\n"
             << "	@JsonIgnore\n"
             << "    @OneToMany(mappedBy =\"" << col->getName() << "\")\n"
-            << "    private Set<" << refTable->getName() << "> " << refName << ";\n"
+            << "    private List<" << refTable->getName() << "> " << refName << ";\n"
             ;
     }
 
